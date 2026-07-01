@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { Card, GhostButton, SectionTitle } from '@/components/ui';
+import { Card, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { calcBMR, calcTDEE } from '@/domain/nutrition';
 import {
   ACTIVITY_LABELS,
@@ -9,13 +10,26 @@ import {
   SEX_LABELS,
 } from '@/domain/profile';
 import { useWaterReminders } from '@/hooks/useWaterReminders';
+import { AuthScreen } from '@/screens/AuthScreen';
 import { useAppData } from '@/state/AppDataProvider';
+import { useAuth } from '@/state/AuthProvider';
 import { colors } from '@/theme/colors';
 
 export function ProfileScreen() {
   const { profile, targets, resetProfile } = useAppData();
   const { settings, toggleEnabled } = useWaterReminders();
+  const { isLoggedIn, user, logout } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
   if (!profile || !targets) return null;
+
+  if (showAuth) return <AuthScreen onClose={() => setShowAuth(false)} />;
+
+  const confirmLogout = () => {
+    Alert.alert('Sair da conta?', 'Seus dados locais continuam no aparelho.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: () => logout() },
+    ]);
+  };
 
   const confirmReset = () => {
     Alert.alert('Refazer questionário?', 'Isso apaga seu perfil e recalcula tudo do zero.', [
@@ -49,6 +63,27 @@ export function ProfileScreen() {
         <Row label="Carboidratos" value={`${targets.carbsG} g`} />
         <Row label="Gorduras" value={`${targets.fatG} g`} />
         <Row label="Água" value={`${targets.waterMl} ml`} highlight />
+      </Card>
+
+      <SectionTitle>Conta</SectionTitle>
+      <Card>
+        {isLoggedIn ? (
+          <View>
+            <Text style={styles.accountLabel}>Conectado como</Text>
+            <Text style={styles.accountEmail}>{user?.email}</Text>
+            <View style={styles.spacer} />
+            <GhostButton label="Sair da conta" onPress={confirmLogout} />
+          </View>
+        ) : (
+          <View>
+            <Text style={styles.accountHint}>
+              Crie uma conta para sincronizar seu progresso e participar de grupos. Opcional — o app
+              funciona offline.
+            </Text>
+            <View style={styles.spacer} />
+            <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
+          </View>
+        )}
       </Card>
 
       <SectionTitle>Lembretes de água</SectionTitle>
@@ -95,6 +130,10 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 15, color: colors.textMuted },
   rowValue: { fontSize: 15, color: colors.text, fontWeight: '600' },
   rowValueHighlight: { color: colors.primary, fontWeight: '800' },
+  accountLabel: { fontSize: 13, color: colors.textMuted },
+  accountEmail: { fontSize: 16, color: colors.text, fontWeight: '700', marginTop: 2 },
+  accountHint: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
+  spacer: { height: 12 },
   reminderRow: { flexDirection: 'row', alignItems: 'center' },
   reminderLabel: { fontSize: 15, color: colors.text, fontWeight: '600' },
   reminderHint: { fontSize: 13, color: colors.textMuted, marginTop: 2 },

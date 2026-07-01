@@ -1,0 +1,81 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+
+import { loginRequest, registerRequest, type AuthUser } from '@/api/auth';
+import { setAuthToken } from '@/api/client';
+import { clearSession, loadSession, saveSession } from '@/storage/authToken';
+
+interface AuthState {
+  loading: boolean;
+  user: AuthUser | null;
+  isLoggedIn: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const Ctx = createContext<AuthState | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const session = await loadSession();
+      if (session) {
+        setAuthToken(session.token);
+        setUser(session.user);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const persist = useCallback(async (token: string, u: AuthUser) => {
+    setAuthToken(token);
+    setUser(u);
+    await saveSession(token, u);
+  }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await loginRequest(email, password);
+      await persist(res.accessToken, res.user);
+    },
+    [persist],
+  );
+
+  const register = useCallback(
+    async (name: string, email: string, password: string) => {
+      const res = await registerRequest(name, email, password);
+      await persist(res.accessToken, res.user);
+    },
+    [persist],
+  );
+
+  const logout = useCallback(async () => {
+    setAuthToken(null);
+    setUser(null);
+    await clearSession();
+  }, []);
+
+  return (
+    <Ctx.Provider
+      value={{ loading, user, isLoggedIn: user !== null, login, register, logout }}
+    >
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export function useAuth(): AuthState {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useAuth deve ser usado dentro de AuthProvider');
+  return ctx;
+}

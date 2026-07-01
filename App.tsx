@@ -3,16 +3,19 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppDataProvider } from '@/state/AppDataProvider';
+import { AuthProvider } from '@/state/AuthProvider';
 import { colors } from '@/theme/colors';
 
 export default function App() {
   return (
-    <AppDataProvider>
-      <SafeAreaView style={styles.root}>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </SafeAreaView>
-    </AppDataProvider>
+    <AuthProvider>
+      <AppDataProvider>
+        <SafeAreaView style={styles.root}>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </SafeAreaView>
+      </AppDataProvider>
+    </AuthProvider>
   );
 }
 
