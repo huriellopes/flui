@@ -179,7 +179,7 @@ export function Field({ label, ...props }: { label: string } & TextInputProps) {
   const c = useTheme();
   return (
     <View style={s.field}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      {label.length > 0 && <Text style={s.fieldLabel}>{label}</Text>}
       <TextInput placeholderTextColor={c.textFaint} style={s.input} {...props} />
     </View>
   );
