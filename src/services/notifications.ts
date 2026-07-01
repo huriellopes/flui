@@ -39,6 +39,20 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
   return status === 'granted';
 }
 
+/** Notificação imediata de comemoração ao bater a meta diária de água. */
+export async function notifyWaterGoalReached(): Promise<void> {
+  const granted = await ensureNotificationPermissions();
+  if (!granted) return;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🎉 Meta de água batida!',
+      body: 'Mandou bem! Você atingiu sua meta de hidratação de hoje. 💧',
+      ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL_ID } : {}),
+    },
+    trigger: null, // dispara imediatamente
+  });
+}
+
 /**
  * Reagenda todos os lembretes de água com base nas configurações atuais.
  * Cancela o que existia antes para evitar duplicidade.

@@ -13,6 +13,7 @@ import {
   type RankEntry,
 } from '@/api/groups';
 import { Card, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { useAuth } from '@/state/AuthProvider';
 import { radius, type Palette } from '@/theme/colors';
@@ -30,6 +31,7 @@ export function GroupsScreen() {
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [ranking, setRanking] = useState<{ group: Group; entries: RankEntry[] } | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -110,34 +112,21 @@ export function GroupsScreen() {
     Alert.alert('Copiado! 📋', `Código ${value} copiado para a área de transferência.`);
   };
 
-  const confirmDelete = (group: Group) => {
-    Alert.alert(
-      'Excluir grupo?',
-      `"${group.name}" e todos os seus dados serão removidos permanentemente. Esta ação não pode ser desfeita.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteGroup(group.id);
-              setRanking(null);
-              await refresh();
-              Alert.alert('Excluído', 'O grupo foi removido.');
-            } catch (e) {
-              Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível excluir.');
-            }
-          },
-        },
-      ],
-    );
+  const doDelete = async (group: Group) => {
+    try {
+      await deleteGroup(group.id);
+      setRanking(null);
+      await refresh();
+    } catch (e) {
+      Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível excluir.');
+    }
   };
 
   if (ranking) {
     const medals = ['🥇', '🥈', '🥉'];
     const isOwner = ranking.group.ownerId === user?.id;
     return (
+      <>
       <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>{ranking.group.name}</Text>
 
@@ -170,9 +159,24 @@ export function GroupsScreen() {
 
         <GhostButton label="← Voltar aos grupos" onPress={() => setRanking(null)} />
         {isOwner && (
-          <GhostButton label="🗑️ Excluir grupo" tone="danger" onPress={() => confirmDelete(ranking.group)} />
+          <GhostButton label="🗑️ Excluir grupo" tone="danger" onPress={() => setDeleteOpen(true)} />
         )}
       </ScrollView>
+
+      <ConfirmModal
+        visible={deleteOpen}
+        icon="🗑️"
+        title="Excluir grupo?"
+        message={`"${ranking.group.name}" e todos os dados serão removidos permanentemente. Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        tone="danger"
+        onConfirm={() => {
+          setDeleteOpen(false);
+          doDelete(ranking.group);
+        }}
+        onCancel={() => setDeleteOpen(false)}
+      />
+      </>
     );
   }
 

@@ -10,6 +10,7 @@ import {
 
 import { pushWater, pushMeal, pushWorkout } from '@/api/logs';
 import { pushProfile } from '@/api/profile';
+import { notifyWaterGoalReached } from '@/services/notifications';
 import {
   addXp,
   touchStreak,
@@ -107,11 +108,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addWater = useCallback(
     async (ml: number) => {
-      await persistLog({ ...todayLog, waterMl: todayLog.waterMl + ml });
+      const before = todayLog.waterMl;
+      const after = before + ml;
+      await persistLog({ ...todayLog, waterMl: after });
       await reward(XP_REWARDS.WATER);
       if (isLoggedIn) syncSafe(() => pushWater(ml));
+      // Comemora ao cruzar a meta diária (uma vez).
+      if (targets && before < targets.waterMl && after >= targets.waterMl) {
+        notifyWaterGoalReached().catch(() => undefined);
+      }
     },
-    [persistLog, reward, todayLog, isLoggedIn],
+    [persistLog, reward, todayLog, isLoggedIn, targets],
   );
 
   const addMeal = useCallback(

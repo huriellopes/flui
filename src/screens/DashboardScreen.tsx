@@ -22,11 +22,15 @@ export function DashboardScreen() {
   const level = levelFromXp(gamification.xp);
   const waterPct = todayLog.waterMl / targets.waterMl;
 
+  // Primeiro + último nome (ex.: "Huriel Lopes").
+  const parts = profile.name.trim().split(/\s+/);
+  const displayName = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+
   return (
     <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
       <View style={s.header}>
         <View>
-          <Text style={s.hello}>Olá, {profile.name.split(' ')[0]} 👋</Text>
+          <Text style={s.hello}>Olá, {displayName} 👋</Text>
           <Text style={s.subtitle}>Vamos bater as metas de hoje</Text>
         </View>
         <View style={s.levelBadge}>
