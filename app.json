@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Notify Water Health",
+    "slug": "app-notify-water-health",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "notifywater",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B7FAB"
+    },
+    "android": {
+      "package": "com.huriellopes.notifywaterhealth",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B7FAB"
+      },
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.huriellopes.notifywaterhealth"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#0B7FAB"
+        }
+      ]
+    ]
+  }
+}
