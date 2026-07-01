@@ -1,6 +1,16 @@
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { ApiError } from '@/api/client';
 import {
@@ -131,7 +141,12 @@ export function GroupsScreen() {
     const isOwner = ranking.group.ownerId === user?.id;
     return (
       <>
-      <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={s.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+      >
+      <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={s.title}>{ranking.group.name}</Text>
 
         <Card style={s.codeCard}>
@@ -185,6 +200,7 @@ export function GroupsScreen() {
           <GhostButton label="🗑️ Excluir grupo" tone="danger" onPress={() => setDeleteOpen(true)} />
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <ConfirmModal
         visible={deleteOpen}

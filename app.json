@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.huriellopes.notifywaterhealth",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0B7FAB"
       },

@@ -76,7 +76,11 @@ export function OnboardingScreen() {
   const back = () => setStep((v) => Math.max(0, v - 1));
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+    >
       <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
         <View style={styles.headerBlock}>
           <Text style={s.stepCount}>
