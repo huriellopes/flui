@@ -85,7 +85,7 @@ export function LogScreen() {
               <Field label="Proteína (g)" value={protein} onChangeText={setProtein} keyboardType="numeric" placeholder="0" />
             </View>
             <View style={styles.flex}>
-              <Field label="Carbo (g)" value={carbs} onChangeText={setCarbs} keyboardType="numeric" placeholder="0" />
+              <Field label="Carboidrato (g)" value={carbs} onChangeText={setCarbs} keyboardType="numeric" placeholder="0" />
             </View>
             <View style={styles.flex}>
               <Field label="Gordura (g)" value={fat} onChangeText={setFat} keyboardType="numeric" placeholder="0" />

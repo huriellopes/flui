@@ -29,10 +29,10 @@ export const SEX_LABELS: Record<Sex, string> = {
 
 export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   SEDENTARY: 'Sedentário',
-  LIGHT: 'Leve (1-2x/sem)',
-  MODERATE: 'Moderado (3-4x/sem)',
-  ACTIVE: 'Ativo (5-6x/sem)',
-  VERY_ACTIVE: 'Muito ativo (2x/dia)',
+  LIGHT: 'Leve (1 a 2x por semana)',
+  MODERATE: 'Moderado (3 a 4x por semana)',
+  ACTIVE: 'Ativo (5 a 6x por semana)',
+  VERY_ACTIVE: 'Muito ativo (2x por dia)',
 };
 
 export const GOAL_LABELS: Record<Goal, string> = {

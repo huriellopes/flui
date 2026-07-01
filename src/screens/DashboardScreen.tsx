@@ -34,7 +34,7 @@ export function DashboardScreen() {
           <Text style={s.subtitle}>Vamos bater as metas de hoje</Text>
         </View>
         <View style={s.levelBadge}>
-          <Text style={s.levelBadgeText}>Nv {level}</Text>
+          <Text style={s.levelBadgeText}>Nível {level}</Text>
         </View>
       </View>
 
@@ -77,7 +77,7 @@ export function DashboardScreen() {
       <SectionTitle>Macronutrientes</SectionTitle>
       <View style={s.macroGrid}>
         <MacroCard label="Proteína" value={protein} goal={targets.proteinG} color={c.protein} s={s} />
-        <MacroCard label="Carbo" value={carbs} goal={targets.carbsG} color={c.carbs} s={s} />
+        <MacroCard label="Carboidrato" value={carbs} goal={targets.carbsG} color={c.carbs} s={s} />
         <MacroCard label="Gordura" value={fat} goal={targets.fatG} color={c.fat} s={s} />
       </View>
 
