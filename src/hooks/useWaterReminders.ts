@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { cancelAllReminders, rescheduleReminders } from '@/services/notifications';
+import {
+  cancelAllReminders,
+  notifyRemindersEnabled,
+  rescheduleReminders,
+} from '@/services/notifications';
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -29,27 +33,36 @@ export function useWaterReminders() {
     };
   }, []);
 
-  const update = useCallback(async (patch: Partial<ReminderSettings>) => {
-    setSettings((prev) => {
-      const next = { ...prev, ...patch };
-      saveSettings(next);
-      rescheduleReminders(next);
-      return next;
-    });
-  }, []);
+  const update = useCallback(
+    async (patch: Partial<ReminderSettings>) => {
+      const next = { ...settings, ...patch };
+      setSettings(next);
+      await saveSettings(next);
+      if (next.enabled) await rescheduleReminders(next);
+    },
+    [settings],
+  );
 
-  const toggleEnabled = useCallback(async () => {
-    setSettings((prev) => {
-      const next = { ...prev, enabled: !prev.enabled };
-      saveSettings(next);
-      if (next.enabled) {
-        rescheduleReminders(next);
-      } else {
-        cancelAllReminders();
-      }
-      return next;
-    });
-  }, []);
+  /** Alterna os lembretes. Retorna true se ativou e a permissão foi concedida. */
+  const toggleEnabled = useCallback(async (): Promise<boolean> => {
+    const next = { ...settings, enabled: !settings.enabled };
+    setSettings(next);
+    await saveSettings(next);
+    if (!next.enabled) {
+      await cancelAllReminders();
+      return true;
+    }
+    const granted = await rescheduleReminders(next);
+    if (!granted) {
+      // Permissão negada: reverte o toggle para não ficar "ligado" sem funcionar.
+      const reverted = { ...next, enabled: false };
+      setSettings(reverted);
+      await saveSettings(reverted);
+      return false;
+    }
+    await notifyRemindersEnabled();
+    return true;
+  }, [settings]);
 
   return { settings, loading, update, toggleEnabled };
 }

@@ -124,7 +124,9 @@ export function ProfileScreen() {
             </View>
             <Switch
               value={settings.enabled}
-              onValueChange={toggleEnabled}
+              onValueChange={() => {
+                void toggleEnabled();
+              }}
               trackColor={{ true: c.primary, false: c.track }}
               thumbColor={c.white}
             />
