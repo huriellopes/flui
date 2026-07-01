@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DashboardScreen } from '@/screens/DashboardScreen';
+import { GroupsScreen } from '@/screens/GroupsScreen';
 import { LogScreen } from '@/screens/LogScreen';
 import { OnboardingScreen } from '@/screens/OnboardingScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { useAppData } from '@/state/AppDataProvider';
 import { colors } from '@/theme/colors';
 
-type Tab = 'home' | 'log' | 'profile';
+type Tab = 'home' | 'log' | 'groups' | 'profile';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'home', label: 'Início', icon: '🏠' },
   { key: 'log', label: 'Registrar', icon: '➕' },
+  { key: 'groups', label: 'Grupos', icon: '👥' },
   { key: 'profile', label: 'Perfil', icon: '👤' },
 ];
 
@@ -37,6 +39,7 @@ export function RootNavigator() {
       <View style={styles.flex}>
         {tab === 'home' && <DashboardScreen />}
         {tab === 'log' && <LogScreen />}
+        {tab === 'groups' && <GroupsScreen />}
         {tab === 'profile' && <ProfileScreen />}
       </View>
       <View style={styles.tabBar}>

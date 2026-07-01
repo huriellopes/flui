@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { pushWater, pushMeal, pushWorkout } from '@/api/logs';
+import { pushProfile } from '@/api/profile';
 import {
   addXp,
   touchStreak,
@@ -18,9 +20,15 @@ import {
 import { emptyLog, todayKey, type DailyLog, type MealEntry, type WorkoutEntry } from '@/domain/log';
 import { calcTargets, type DailyTargets } from '@/domain/nutrition';
 import type { UserProfile } from '@/domain/profile';
+import { useAuth } from '@/state/AuthProvider';
 import { loadLog, saveLog } from '@/storage/dailyLog';
 import { loadGamification, saveGamification } from '@/storage/gamification';
 import { clearProfile, loadProfile, saveProfile } from '@/storage/profile';
+
+// Sincronização best-effort: nunca quebra o fluxo offline se a API falhar.
+function syncSafe(run: () => Promise<unknown>) {
+  run().catch(() => undefined);
+}
 
 interface AppData {
   loading: boolean;
@@ -42,6 +50,7 @@ function newId(): string {
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
+  const { isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [todayLog, setTodayLog] = useState<DailyLog>(emptyLog(todayKey()));
@@ -76,10 +85,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveUserProfile = useCallback(async (p: UserProfile) => {
-    setProfile(p);
-    await saveProfile(p);
-  }, []);
+  const saveUserProfile = useCallback(
+    async (p: UserProfile) => {
+      setProfile(p);
+      await saveProfile(p);
+      if (isLoggedIn) syncSafe(() => pushProfile(p));
+    },
+    [isLoggedIn],
+  );
+
+  // Ao logar, envia o perfil local para o servidor recalcular/guardar as metas.
+  useEffect(() => {
+    if (isLoggedIn && profile) syncSafe(() => pushProfile(profile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
 
   const resetProfile = useCallback(async () => {
     await clearProfile();
@@ -90,8 +109,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     async (ml: number) => {
       await persistLog({ ...todayLog, waterMl: todayLog.waterMl + ml });
       await reward(XP_REWARDS.WATER);
+      if (isLoggedIn) syncSafe(() => pushWater(ml));
     },
-    [persistLog, reward, todayLog],
+    [persistLog, reward, todayLog, isLoggedIn],
   );
 
   const addMeal = useCallback(
@@ -99,8 +119,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const entry: MealEntry = { ...meal, id: newId(), at: new Date().toISOString() };
       await persistLog({ ...todayLog, meals: [...todayLog.meals, entry] });
       await reward(XP_REWARDS.MEAL);
+      if (isLoggedIn) syncSafe(() => pushMeal(meal));
     },
-    [persistLog, reward, todayLog],
+    [persistLog, reward, todayLog, isLoggedIn],
   );
 
   const addWorkout = useCallback(
@@ -108,8 +129,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const entry: WorkoutEntry = { ...w, id: newId(), at: new Date().toISOString() };
       await persistLog({ ...todayLog, workouts: [...todayLog.workouts, entry] });
       await reward(XP_REWARDS.WORKOUT);
+      if (isLoggedIn) syncSafe(() => pushWorkout(w));
     },
-    [persistLog, reward, todayLog],
+    [persistLog, reward, todayLog, isLoggedIn],
   );
 
   const value: AppData = {
