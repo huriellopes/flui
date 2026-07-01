@@ -8,6 +8,7 @@ const ANDROID_CHANNEL_ID = 'water-reminders';
 // Como as notificações devem se comportar quando o app está em primeiro plano.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,

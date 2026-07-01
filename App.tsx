@@ -1,15 +1,18 @@
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
-import { HomeScreen } from '@/screens/HomeScreen';
+import { RootNavigator } from '@/navigation/RootNavigator';
+import { AppDataProvider } from '@/state/AppDataProvider';
 import { colors } from '@/theme/colors';
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar style="dark" />
-      <HomeScreen />
-    </SafeAreaView>
+    <AppDataProvider>
+      <SafeAreaView style={styles.root}>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </SafeAreaView>
+    </AppDataProvider>
   );
 }
 
