@@ -1,21 +1,28 @@
 {
   "expo": {
-    "name": "Notify Water Health",
+    "name": "Flui",
     "slug": "app-notify-water-health",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "notifywater",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B7FAB"
+      "backgroundColor": "#04283B"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "android": {
       "package": "com.huriellopes.notifywaterhealth",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#0B7FAB"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundImage": "./assets/adaptive-bg.png",
+        "backgroundColor": "#1E86D0"
       },
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
@@ -30,7 +37,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0B7FAB"
+          "color": "#16B8D4"
         }
       ],
       "expo-asset",
