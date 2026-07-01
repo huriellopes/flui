@@ -35,6 +35,13 @@
       "expo-asset",
       "expo-secure-store",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O app precisa acessar suas fotos para você postar no feed do grupo.",
+          "cameraPermission": "O app precisa da câmera para você tirar fotos para o feed do grupo."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

@@ -12,9 +12,10 @@ import {
   type Group,
   type RankEntry,
 } from '@/api/groups';
-import { Card, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
+import { Card, Chip, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { AuthScreen } from '@/screens/AuthScreen';
+import { GroupFeed } from '@/screens/GroupFeed';
 import { useAuth } from '@/state/AuthProvider';
 import { radius, type Palette } from '@/theme/colors';
 import { useThemedStyles } from '@/theme/ThemeProvider';
@@ -32,6 +33,7 @@ export function GroupsScreen() {
   const [joining, setJoining] = useState(false);
   const [ranking, setRanking] = useState<{ group: Group; entries: RankEntry[] } | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState<'feed' | 'ranking'>('feed');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -101,6 +103,7 @@ export function GroupsScreen() {
   const openRanking = async (group: Group) => {
     try {
       const entries = await groupRanking(group.id);
+      setDetailTab('feed');
       setRanking({ group, entries });
     } catch (e) {
       Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível carregar.');
@@ -143,19 +146,31 @@ export function GroupsScreen() {
           </Pressable>
         </Card>
 
-        <SectionTitle>Ranking por XP</SectionTitle>
-        <Card>
-          {ranking.entries.map((e, i) => (
-            <View key={e.userId} style={[s.rankRow, i > 0 && s.rankDivider]}>
-              <Text style={s.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
-              <View style={s.flex}>
-                <Text style={s.rankName}>{e.name}</Text>
-                <Text style={s.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
+        <View style={s.tabRow}>
+          <View style={s.flex}>
+            <Chip label="📸 Feed" full selected={detailTab === 'feed'} onPress={() => setDetailTab('feed')} />
+          </View>
+          <View style={s.flex}>
+            <Chip label="🏆 Ranking" full selected={detailTab === 'ranking'} onPress={() => setDetailTab('ranking')} />
+          </View>
+        </View>
+
+        {detailTab === 'feed' ? (
+          <GroupFeed groupId={ranking.group.id} currentUserId={user?.id} />
+        ) : (
+          <Card>
+            {ranking.entries.map((e, i) => (
+              <View key={e.userId} style={[s.rankRow, i > 0 && s.rankDivider]}>
+                <Text style={s.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
+                <View style={s.flex}>
+                  <Text style={s.rankName}>{e.name}</Text>
+                  <Text style={s.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
+                </View>
+                <Text style={s.rankXp}>{e.xp} XP</Text>
               </View>
-              <Text style={s.rankXp}>{e.xp} XP</Text>
-            </View>
-          ))}
-        </Card>
+            ))}
+          </Card>
+        )}
 
         <GhostButton label="← Voltar aos grupos" onPress={() => setRanking(null)} />
         {isOwner && (
@@ -248,6 +263,7 @@ const makeStyles = (c: Palette) =>
     bigEmoji: { fontSize: 44 },
     emptyTitle: { fontSize: 18, fontWeight: '800', color: c.text },
     pressed: { opacity: 0.6 },
+    tabRow: { flexDirection: 'row', gap: 8 },
     codeCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     codeLabel: { fontSize: 12, color: c.textMuted, fontWeight: '700' },
     codeValue: { fontSize: 20, fontWeight: '900', color: c.text, letterSpacing: 1, marginTop: 2 },
