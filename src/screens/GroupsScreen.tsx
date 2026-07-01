@@ -1,9 +1,11 @@
+import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import {
   createGroup,
+  deleteGroup,
   groupRanking,
   joinGroup,
   myGroups,
@@ -13,17 +15,18 @@ import {
 import { Card, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { useAuth } from '@/state/AuthProvider';
-import { colors, radius } from '@/theme/colors';
+import { radius, type Palette } from '@/theme/colors';
+import { useThemedStyles } from '@/theme/ThemeProvider';
 
 export function GroupsScreen() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
+  const s = useThemedStyles(makeStyles);
   const [showAuth, setShowAuth] = useState(false);
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  // Estados de carregamento SEPARADOS — evita os dois botões ativarem juntos.
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [ranking, setRanking] = useState<{ group: Group; entries: RankEntry[] } | null>(null);
@@ -33,7 +36,7 @@ export function GroupsScreen() {
     try {
       setGroups(await myGroups());
     } catch {
-      /* offline: mantém estado atual */
+      /* offline */
     } finally {
       setLoading(false);
     }
@@ -47,16 +50,16 @@ export function GroupsScreen() {
 
   if (!isLoggedIn) {
     return (
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Grupos</Text>
-        <Card style={styles.emptyCard}>
-          <Text style={styles.bigEmoji}>👥</Text>
-          <Text style={styles.emptyTitle}>Compita com amigos</Text>
-          <Text style={styles.hint}>
+      <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
+        <Text style={s.title}>Grupos</Text>
+        <Card style={s.emptyCard}>
+          <Text style={s.bigEmoji}>👥</Text>
+          <Text style={s.emptyTitle}>Compita com amigos</Text>
+          <Text style={s.hint}>
             Crie ou entre em grupos e dispute o ranking de XP. Precisa de uma conta (opcional — o
             app funciona offline).
           </Text>
-          <View style={styles.spacer} />
+          <View style={s.spacer} />
           <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
         </Card>
       </ScrollView>
@@ -102,59 +105,108 @@ export function GroupsScreen() {
     }
   };
 
+  const copyCode = async (value: string) => {
+    await Clipboard.setStringAsync(value);
+    Alert.alert('Copiado! 📋', `Código ${value} copiado para a área de transferência.`);
+  };
+
+  const confirmDelete = (group: Group) => {
+    Alert.alert(
+      'Excluir grupo?',
+      `"${group.name}" e todos os seus dados serão removidos permanentemente. Esta ação não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteGroup(group.id);
+              setRanking(null);
+              await refresh();
+              Alert.alert('Excluído', 'O grupo foi removido.');
+            } catch (e) {
+              Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível excluir.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (ranking) {
     const medals = ['🥇', '🥈', '🥉'];
+    const isOwner = ranking.group.ownerId === user?.id;
     return (
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{ranking.group.name}</Text>
-        <Text style={styles.codeLine}>Código: {ranking.group.inviteCode}</Text>
+      <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
+        <Text style={s.title}>{ranking.group.name}</Text>
+
+        <Card style={s.codeCard}>
+          <View style={s.flex}>
+            <Text style={s.codeLabel}>Código de convite</Text>
+            <Text style={s.codeValue}>{ranking.group.inviteCode}</Text>
+          </View>
+          <Pressable
+            onPress={() => copyCode(ranking.group.inviteCode)}
+            style={({ pressed }) => [s.copyBtn, pressed && s.pressed]}
+          >
+            <Text style={s.copyBtnText}>📋 Copiar</Text>
+          </Pressable>
+        </Card>
+
         <SectionTitle>Ranking por XP</SectionTitle>
-        <Card style={styles.rankCard}>
+        <Card>
           {ranking.entries.map((e, i) => (
-            <View key={e.userId} style={[styles.rankRow, i > 0 && styles.rankDivider]}>
-              <Text style={styles.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
-              <View style={styles.flex}>
-                <Text style={styles.rankName}>{e.name}</Text>
-                <Text style={styles.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
+            <View key={e.userId} style={[s.rankRow, i > 0 && s.rankDivider]}>
+              <Text style={s.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
+              <View style={s.flex}>
+                <Text style={s.rankName}>{e.name}</Text>
+                <Text style={s.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
               </View>
-              <Text style={styles.rankXp}>{e.xp} XP</Text>
+              <Text style={s.rankXp}>{e.xp} XP</Text>
             </View>
           ))}
         </Card>
+
         <GhostButton label="← Voltar aos grupos" onPress={() => setRanking(null)} />
+        {isOwner && (
+          <GhostButton label="🗑️ Excluir grupo" tone="danger" onPress={() => confirmDelete(ranking.group)} />
+        )}
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Grupos</Text>
+    <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
+      <Text style={s.title}>Grupos</Text>
 
       <SectionTitle>Meus grupos</SectionTitle>
       {groups.length === 0 ? (
         <Card>
-          <Text style={styles.hint}>
+          <Text style={s.hint}>
             {loading ? 'Carregando…' : 'Você ainda não participa de nenhum grupo.'}
           </Text>
         </Card>
       ) : (
         groups.map((g) => (
-          <Pressable
-            key={g.id}
-            onPress={() => openRanking(g)}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Card style={styles.groupCard}>
-              <View style={styles.groupAvatar}>
-                <Text style={styles.groupAvatarText}>{g.name.charAt(0).toUpperCase()}</Text>
+          <Pressable key={g.id} onPress={() => openRanking(g)} style={({ pressed }) => pressed && s.pressed}>
+            <Card style={s.groupCard}>
+              <View style={s.groupAvatar}>
+                <Text style={s.groupAvatarText}>{g.name.charAt(0).toUpperCase()}</Text>
               </View>
-              <View style={styles.flex}>
-                <Text style={styles.groupName}>{g.name}</Text>
-                <Text style={styles.groupMeta}>
+              <View style={s.flex}>
+                <Text style={s.groupName}>{g.name}</Text>
+                <Text style={s.groupMeta}>
                   {g._count?.members ?? 0} membro(s) · {g.inviteCode}
                 </Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              <Pressable
+                onPress={() => copyCode(g.inviteCode)}
+                hitSlop={10}
+                style={({ pressed }) => [s.cardCopy, pressed && s.pressed]}
+              >
+                <Text style={s.cardCopyText}>📋</Text>
+              </Pressable>
             </Card>
           </Pressable>
         ))
@@ -181,35 +233,45 @@ export function GroupsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text },
-  codeLine: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
-  hint: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
-  spacer: { height: 14 },
-  emptyCard: { alignItems: 'center', paddingVertical: 28, gap: 6 },
-  bigEmoji: { fontSize: 44 },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  pressed: { opacity: 0.7 },
-  groupCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  groupAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupAvatarText: { fontSize: 20, fontWeight: '800', color: colors.primaryDark },
-  groupName: { fontSize: 16, fontWeight: '700', color: colors.text },
-  groupMeta: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  chevron: { fontSize: 28, color: colors.textFaint, fontWeight: '300' },
-  rankCard: { gap: 0 },
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  rankDivider: { borderTopWidth: 1, borderTopColor: colors.border },
-  rankPos: { width: 34, fontSize: 20, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  rankName: { fontSize: 15, fontWeight: '700', color: colors.text },
-  rankSub: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
-  rankXp: { fontSize: 15, fontWeight: '800', color: colors.primary },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: c.background },
+    title: { fontSize: 24, fontWeight: '800', color: c.text },
+    hint: { fontSize: 14, color: c.textMuted, lineHeight: 21 },
+    spacer: { height: 14 },
+    emptyCard: { alignItems: 'center', paddingVertical: 28, gap: 6 },
+    bigEmoji: { fontSize: 44 },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: c.text },
+    pressed: { opacity: 0.6 },
+    codeCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    codeLabel: { fontSize: 12, color: c.textMuted, fontWeight: '700' },
+    codeValue: { fontSize: 20, fontWeight: '900', color: c.text, letterSpacing: 1, marginTop: 2 },
+    copyBtn: {
+      backgroundColor: c.primarySoft,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: radius.md,
+    },
+    copyBtnText: { color: c.primary, fontWeight: '800', fontSize: 14 },
+    groupCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    groupAvatar: {
+      width: 46,
+      height: 46,
+      borderRadius: radius.md,
+      backgroundColor: c.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    groupAvatarText: { fontSize: 20, fontWeight: '800', color: c.primary },
+    groupName: { fontSize: 16, fontWeight: '700', color: c.text },
+    groupMeta: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    cardCopy: { padding: 6 },
+    cardCopyText: { fontSize: 20 },
+    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+    rankDivider: { borderTopWidth: 1, borderTopColor: c.border },
+    rankPos: { width: 34, fontSize: 20, fontWeight: '800', color: c.text, textAlign: 'center' },
+    rankName: { fontSize: 15, fontWeight: '700', color: c.text },
+    rankSub: { fontSize: 12, color: c.textMuted, marginTop: 1 },
+    rankXp: { fontSize: 15, fontWeight: '800', color: c.primary },
+  });

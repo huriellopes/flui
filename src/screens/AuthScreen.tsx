@@ -4,10 +4,12 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { ApiError } from '@/api/client';
 import { Field, GhostButton, PrimaryButton } from '@/components/ui';
 import { useAuth } from '@/state/AuthProvider';
-import { colors } from '@/theme/colors';
+import { type Palette } from '@/theme/colors';
+import { useThemedStyles } from '@/theme/ThemeProvider';
 
 export function AuthScreen({ onClose }: { onClose: () => void }) {
   const { login, register } = useAuth();
+  const s = useThemedStyles(makeStyles);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,16 +39,14 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.emoji}>💧</Text>
-        <Text style={styles.title}>{isRegister ? 'Criar conta' : 'Entrar'}</Text>
-        <Text style={styles.subtitle}>
+        <Text style={s.title}>{isRegister ? 'Criar conta' : 'Entrar'}</Text>
+        <Text style={s.subtitle}>
           Sincronize seu progresso e participe de grupos. É opcional — o app funciona offline.
         </Text>
 
-        {isRegister && (
-          <Field label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
-        )}
+        {isRegister && <Field label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />}
         <Field
           label="E-mail"
           value={email}
@@ -64,12 +64,12 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
           autoCapitalize="none"
         />
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <Text style={s.error}>{error}</Text>}
 
         <PrimaryButton
-          label={busy ? 'Aguarde…' : isRegister ? 'Criar conta' : 'Entrar'}
+          label={isRegister ? 'Criar conta' : 'Entrar'}
           onPress={submit}
-          disabled={busy}
+          loading={busy}
         />
         <View style={styles.spacer} />
         <GhostButton
@@ -87,11 +87,15 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: 24, gap: 8, flexGrow: 1, justifyContent: 'center' },
+  flex: { flex: 1 },
   emoji: { fontSize: 48, textAlign: 'center' },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginBottom: 20 },
-  error: { color: '#C0392B', fontSize: 14, marginBottom: 8, textAlign: 'center' },
   spacer: { height: 10 },
 });
+
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    container: { padding: 24, gap: 8, flexGrow: 1, justifyContent: 'center', backgroundColor: c.background },
+    title: { fontSize: 26, fontWeight: '800', color: c.text, textAlign: 'center' },
+    subtitle: { fontSize: 14, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
+    error: { color: c.danger, fontSize: 14, marginBottom: 8, textAlign: 'center' },
+  });

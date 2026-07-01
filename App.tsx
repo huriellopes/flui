@@ -5,26 +5,33 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppDataProvider } from '@/state/AppDataProvider';
 import { AuthProvider } from '@/state/AuthProvider';
-import { colors } from '@/theme/colors';
+import { ThemeProvider, useTheme, useThemeControl } from '@/theme/ThemeProvider';
+
+function Shell() {
+  const c = useTheme();
+  const { scheme } = useThemeControl();
+  return (
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <AuthProvider>
+        <AppDataProvider>
+          <RootNavigator />
+        </AppDataProvider>
+      </AuthProvider>
+    </View>
+  );
+}
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <View style={styles.root}>
-        <AuthProvider>
-          <AppDataProvider>
-            <RootNavigator />
-          </AppDataProvider>
-        </AuthProvider>
-      </View>
+      <ThemeProvider>
+        <Shell />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  root: { flex: 1 },
 });

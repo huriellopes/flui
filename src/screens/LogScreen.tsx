@@ -11,12 +11,14 @@ import {
 
 import { Card, Chip, Field, PrimaryButton, SectionTitle } from '@/components/ui';
 import { useAppData } from '@/state/AppDataProvider';
-import { colors } from '@/theme/colors';
+import { type Palette } from '@/theme/colors';
+import { useThemedStyles } from '@/theme/ThemeProvider';
 
 const WORKOUT_KINDS = ['Musculação', 'Corrida', 'Ciclismo', 'Funcional', 'Outro'];
 
 export function LogScreen() {
   const { addMeal, addWorkout } = useAppData();
+  const s = useThemedStyles(makeStyles);
 
   const [label, setLabel] = useState('');
   const [calories, setCalories] = useState('');
@@ -27,7 +29,7 @@ export function LogScreen() {
   const [kind, setKind] = useState(WORKOUT_KINDS[0]);
   const [duration, setDuration] = useState('');
 
-  const int = (s: string) => Math.max(0, Math.round(parseFloat(s.replace(',', '.')) || 0));
+  const int = (v: string) => Math.max(0, Math.round(parseFloat(v.replace(',', '.')) || 0));
 
   const submitMeal = async () => {
     if (label.trim().length < 2 || int(calories) <= 0) {
@@ -60,19 +62,16 @@ export function LogScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={s.container}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Registrar</Text>
+        <Text style={s.title}>Registrar</Text>
 
         <SectionTitle>🍽️ Refeição</SectionTitle>
-        <Card style={styles.cardGap}>
+        <Card style={styles.gap}>
           <Field label="Nome" value={label} onChangeText={setLabel} placeholder="Ex: Almoço" />
           <Field
             label="Calorias (kcal)"
@@ -96,8 +95,8 @@ export function LogScreen() {
         </Card>
 
         <SectionTitle>🏋️ Treino</SectionTitle>
-        <Card style={styles.cardGap}>
-          <Text style={styles.fieldLabel}>Tipo</Text>
+        <Card style={styles.gap}>
+          <Text style={s.fieldLabel}>Tipo</Text>
           <View style={styles.chipWrap}>
             {WORKOUT_KINDS.map((k) => (
               <Chip key={k} label={k} selected={kind === k} onPress={() => setKind(k)} />
@@ -119,10 +118,14 @@ export function LogScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text },
-  cardGap: { gap: 4 },
+  gap: { gap: 4 },
   row: { flexDirection: 'row', gap: 8 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  fieldLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 8, fontWeight: '700' },
 });
+
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: c.background },
+    title: { fontSize: 24, fontWeight: '800', color: c.text },
+    fieldLabel: { fontSize: 13, color: c.textMuted, marginBottom: 8, fontWeight: '700' },
+  });

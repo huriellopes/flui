@@ -18,6 +18,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (u: AuthUser) => Promise<void>;
 }
 
 const Ctx = createContext<AuthState | null>(null);
@@ -25,23 +26,35 @@ const Ctx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const session = await loadSession();
       if (session) {
         setAuthToken(session.token);
+        setToken(session.token);
         setUser(session.user);
       }
       setLoading(false);
     })();
   }, []);
 
-  const persist = useCallback(async (token: string, u: AuthUser) => {
-    setAuthToken(token);
+  const persist = useCallback(async (t: string, u: AuthUser) => {
+    setAuthToken(t);
+    setToken(t);
     setUser(u);
-    await saveSession(token, u);
+    await saveSession(t, u);
   }, []);
+
+  // Atualiza os dados do usuário (após editar nome/e-mail) mantendo o token.
+  const updateUser = useCallback(
+    async (u: AuthUser) => {
+      setUser(u);
+      if (token) await saveSession(token, u);
+    },
+    [token],
+  );
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -61,13 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setAuthToken(null);
+    setToken(null);
     setUser(null);
     await clearSession();
   }, []);
 
   return (
     <Ctx.Provider
-      value={{ loading, user, isLoggedIn: user !== null, login, register, logout }}
+      value={{ loading, user, isLoggedIn: user !== null, login, register, logout, updateUser }}
     >
       {children}
     </Ctx.Provider>

@@ -3,6 +3,7 @@ import { apiRequest } from './client';
 export interface Group {
   id: string;
   name: string;
+  ownerId: string;
   inviteCode: string;
   _count?: { members: number };
 }
@@ -29,4 +30,8 @@ export function myGroups() {
 
 export function groupRanking(id: string) {
   return apiRequest<RankEntry[]>(`/groups/${id}/ranking`, { auth: true });
+}
+
+export function deleteGroup(id: string) {
+  return apiRequest<{ ok: boolean }>(`/groups/${id}`, { method: 'DELETE', auth: true });
 }
