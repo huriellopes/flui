@@ -32,6 +32,12 @@
           "color": "#0B7FAB"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d92187a6-d6fe-4dca-be42-4471564dc720"
+      }
+    },
+    "owner": "huriellopes"
   }
 }
