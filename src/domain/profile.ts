@@ -14,6 +14,13 @@ export interface UserProfile {
   createdAt: string;
 }
 
+/** Retorna o primeiro e o último nome (ex.: "Huriel Lopes"). */
+export function shortName(full: string): string {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return parts[0] ?? '';
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
 export function ageFromBirthDate(birthDate: string, now = new Date()): number {
   const b = new Date(birthDate);
   let age = now.getFullYear() - b.getFullYear();

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, CircularProgress, ProgressBar, SectionTitle } from '@/components/ui';
 import { levelFromXp, xpIntoLevel } from '@/domain/gamification';
 import { totalCalories, totalCarbs, totalFat, totalProtein } from '@/domain/log';
+import { shortName } from '@/domain/profile';
 import { useAppData } from '@/state/AppDataProvider';
 import { radius, type Palette } from '@/theme/colors';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
@@ -21,10 +22,7 @@ export function DashboardScreen() {
   const fat = totalFat(todayLog);
   const level = levelFromXp(gamification.xp);
   const waterPct = todayLog.waterMl / targets.waterMl;
-
-  // Primeiro + último nome (ex.: "Huriel Lopes").
-  const parts = profile.name.trim().split(/\s+/);
-  const displayName = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+  const displayName = shortName(profile.name);
 
   return (
     <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>

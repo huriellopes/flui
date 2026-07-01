@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/api/groups';
 import { Card, Chip, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { shortName } from '@/domain/profile';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { GroupFeed } from '@/screens/GroupFeed';
 import { useAuth } from '@/state/AuthProvider';
@@ -162,8 +163,15 @@ export function GroupsScreen() {
             {ranking.entries.map((e, i) => (
               <View key={e.userId} style={[s.rankRow, i > 0 && s.rankDivider]}>
                 <Text style={s.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
+                {e.avatarUrl ? (
+                  <Image source={{ uri: e.avatarUrl }} style={s.rankAvatar} />
+                ) : (
+                  <View style={s.rankAvatar}>
+                    <Text style={s.rankAvatarText}>{e.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
                 <View style={s.flex}>
-                  <Text style={s.rankName}>{e.name}</Text>
+                  <Text style={s.rankName}>{shortName(e.name)}</Text>
                   <Text style={s.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
                 </View>
                 <Text style={s.rankXp}>{e.xp} XP</Text>
@@ -288,9 +296,18 @@ const makeStyles = (c: Palette) =>
     groupMeta: { fontSize: 13, color: c.textMuted, marginTop: 2 },
     cardCopy: { padding: 6 },
     cardCopyText: { fontSize: 20 },
-    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
     rankDivider: { borderTopWidth: 1, borderTopColor: c.border },
-    rankPos: { width: 34, fontSize: 20, fontWeight: '800', color: c.text, textAlign: 'center' },
+    rankPos: { width: 28, fontSize: 18, fontWeight: '800', color: c.text, textAlign: 'center' },
+    rankAvatar: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.pill,
+      backgroundColor: c.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rankAvatarText: { color: c.primary, fontWeight: '800', fontSize: 16 },
     rankName: { fontSize: 15, fontWeight: '700', color: c.text },
     rankSub: { fontSize: 12, color: c.textMuted, marginTop: 1 },
     rankXp: { fontSize: 15, fontWeight: '800', color: c.primary },

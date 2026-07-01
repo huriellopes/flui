@@ -12,3 +12,11 @@ export function updatePassword(currentPassword: string, newPassword: string) {
     body: { currentPassword, newPassword },
   });
 }
+
+export function updateAvatar(imageBase64: string, imageMime?: string) {
+  return apiRequest<AuthUser>('/users/me/avatar', {
+    method: 'PATCH',
+    auth: true,
+    body: { imageBase64, imageMime },
+  });
+}

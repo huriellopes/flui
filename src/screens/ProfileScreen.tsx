@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Card, Chip, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -40,9 +40,13 @@ export function ProfileScreen() {
     <>
       <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
-          <View style={s.avatar}>
-            <Text style={s.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text>
-          </View>
+          {user?.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={s.avatar} />
+          ) : (
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
           <Text style={s.name}>{profile.name}</Text>
           <Text style={s.sub}>
             {ageFromBirthDate(profile.birthDate)} anos · {SEX_LABELS[profile.sex]}

@@ -1,4 +1,3 @@
-import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,10 +5,10 @@ import { ApiError } from '@/api/client';
 import { createPost, deletePost, listPosts, type Post } from '@/api/posts';
 import { Card, Field, PrimaryButton } from '@/components/ui';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { shortName } from '@/domain/profile';
 import { radius, type Palette } from '@/theme/colors';
 import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
-
-type Picked = { base64: string; mime?: string; uri: string };
+import { pickFromCamera, pickFromGallery, type PickedImage } from '@/utils/imagePicker';
 
 function timeAgo(iso: string): string {
   const diff = (new Date().getTime() - new Date(iso).getTime()) / 1000;
@@ -25,7 +24,7 @@ export function GroupFeed({ groupId, currentUserId }: { groupId: string; current
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [caption, setCaption] = useState('');
-  const [image, setImage] = useState<Picked | null>(null);
+  const [image, setImage] = useState<PickedImage | null>(null);
   const [posting, setPosting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -44,31 +43,15 @@ export function GroupFeed({ groupId, currentUserId }: { groupId: string; current
     load();
   }, [load]);
 
-  const fromResult = (res: ImagePicker.ImagePickerResult) => {
-    if (res.canceled || !res.assets?.[0]?.base64) return;
-    const a = res.assets[0];
-    setImage({ base64: a.base64!, mime: a.mimeType, uri: a.uri });
-  };
-
   const pickGallery = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.4,
-      base64: true,
-      allowsEditing: true,
-    });
-    fromResult(res);
+    const img = await pickFromGallery();
+    if (img) setImage(img);
   };
 
   const takePhoto = async () => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) return Alert.alert('Permissão', 'Precisamos da câmera para tirar a foto.');
-    const res = await ImagePicker.launchCameraAsync({
-      quality: 0.4,
-      base64: true,
-      allowsEditing: true,
-    });
-    fromResult(res);
+    const img = await pickFromCamera();
+    if (img === 'denied') return Alert.alert('Permissão', 'Precisamos da câmera para tirar a foto.');
+    if (img) setImage(img);
   };
 
   const submit = async () => {
@@ -134,11 +117,15 @@ export function GroupFeed({ groupId, currentUserId }: { groupId: string; current
         posts.map((p) => (
           <Card key={p.id} style={s.post}>
             <View style={s.postHeader}>
-              <View style={s.postAvatar}>
-                <Text style={s.postAvatarText}>{p.author.name.charAt(0).toUpperCase()}</Text>
-              </View>
+              {p.author.avatarUrl ? (
+                <Image source={{ uri: p.author.avatarUrl }} style={s.postAvatar} />
+              ) : (
+                <View style={s.postAvatar}>
+                  <Text style={s.postAvatarText}>{p.author.name.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
               <View style={s.flex}>
-                <Text style={s.postAuthor}>{p.author.name}</Text>
+                <Text style={s.postAuthor}>{shortName(p.author.name)}</Text>
                 <Text style={s.postTime}>{timeAgo(p.createdAt)}</Text>
               </View>
               {p.author.id === currentUserId && (

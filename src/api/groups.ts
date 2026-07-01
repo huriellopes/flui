@@ -11,6 +11,7 @@ export interface Group {
 export interface RankEntry {
   userId: string;
   name: string;
+  avatarUrl?: string | null;
   xp: number;
   level: number;
   currentStreak: number;

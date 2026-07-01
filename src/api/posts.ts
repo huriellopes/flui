@@ -5,7 +5,7 @@ export interface Post {
   caption: string;
   imageUrl: string | null;
   createdAt: string;
-  author: { id: string; name: string };
+  author: { id: string; name: string; avatarUrl?: string | null };
 }
 
 export function listPosts(groupId: string) {
