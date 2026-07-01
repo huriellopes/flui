@@ -17,6 +17,19 @@ Próximos passos previstos:
 - Registro do consumo diário e barra de progresso
 - Aplicar a janela `startHour`/`endHour` no agendamento
 
+## Backend
+
+A API fica em repositório separado e é interligada aqui como submódulo em [`backend/`](./backend):
+**[api-notify-water-health](https://github.com/huriellopes/api-notify-water-health)** (NestJS + Prisma + PostgreSQL, deploy em Docker no Contabo).
+
+Para clonar já com o backend:
+
+```bash
+git clone --recurse-submodules https://github.com/huriellopes/app-notify-water-health.git
+# ou, se já clonou sem o submódulo:
+git submodule update --init --recursive
+```
+
 ## Stack
 
 - [Expo](https://expo.dev) SDK 52
