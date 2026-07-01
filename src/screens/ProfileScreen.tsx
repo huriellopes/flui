@@ -3,17 +3,12 @@ import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 
 import { Card, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { calcBMR, calcTDEE } from '@/domain/nutrition';
-import {
-  ACTIVITY_LABELS,
-  ageFromBirthDate,
-  GOAL_LABELS,
-  SEX_LABELS,
-} from '@/domain/profile';
+import { ACTIVITY_LABELS, ageFromBirthDate, GOAL_LABELS, SEX_LABELS } from '@/domain/profile';
 import { useWaterReminders } from '@/hooks/useWaterReminders';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { useAppData } from '@/state/AppDataProvider';
 import { useAuth } from '@/state/AuthProvider';
-import { colors } from '@/theme/colors';
+import { colors, radius } from '@/theme/colors';
 
 export function ProfileScreen() {
   const { profile, targets, resetProfile } = useAppData();
@@ -38,12 +33,40 @@ export function ProfileScreen() {
     ]);
   };
 
+  const initial = profile.name.charAt(0).toUpperCase();
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{profile.name}</Text>
-      <Text style={styles.subtitle}>
-        {ageFromBirthDate(profile.birthDate)} anos · {SEX_LABELS[profile.sex]}
-      </Text>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.hero}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+        <Text style={styles.name}>{profile.name}</Text>
+        <Text style={styles.sub}>
+          {ageFromBirthDate(profile.birthDate)} anos · {SEX_LABELS[profile.sex]}
+        </Text>
+      </View>
+
+      <SectionTitle>Conta</SectionTitle>
+      <Card>
+        {isLoggedIn ? (
+          <View>
+            <Text style={styles.rowLabel}>Conectado como</Text>
+            <Text style={styles.accountEmail}>{user?.email}</Text>
+            <View style={styles.spacer} />
+            <GhostButton label="Sair da conta" onPress={confirmLogout} tone="danger" />
+          </View>
+        ) : (
+          <View>
+            <Text style={styles.hint}>
+              Crie uma conta para sincronizar seu progresso e participar de grupos. Opcional — o app
+              funciona offline.
+            </Text>
+            <View style={styles.spacer} />
+            <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
+          </View>
+        )}
+      </Card>
 
       <SectionTitle>Seus dados</SectionTitle>
       <Card style={styles.gap}>
@@ -56,34 +79,13 @@ export function ProfileScreen() {
 
       <SectionTitle>Metas calculadas</SectionTitle>
       <Card style={styles.gap}>
-        <Row label="Metabolismo basal (BMR)" value={`${Math.round(calcBMR(profile))} kcal`} />
+        <Row label="Metabolismo basal" value={`${Math.round(calcBMR(profile))} kcal`} />
         <Row label="Gasto diário (TDEE)" value={`${Math.round(calcTDEE(profile))} kcal`} />
         <Row label="Meta de calorias" value={`${targets.calories} kcal`} highlight />
         <Row label="Proteínas" value={`${targets.proteinG} g`} />
         <Row label="Carboidratos" value={`${targets.carbsG} g`} />
         <Row label="Gorduras" value={`${targets.fatG} g`} />
         <Row label="Água" value={`${targets.waterMl} ml`} highlight />
-      </Card>
-
-      <SectionTitle>Conta</SectionTitle>
-      <Card>
-        {isLoggedIn ? (
-          <View>
-            <Text style={styles.accountLabel}>Conectado como</Text>
-            <Text style={styles.accountEmail}>{user?.email}</Text>
-            <View style={styles.spacer} />
-            <GhostButton label="Sair da conta" onPress={confirmLogout} />
-          </View>
-        ) : (
-          <View>
-            <Text style={styles.accountHint}>
-              Crie uma conta para sincronizar seu progresso e participar de grupos. Opcional — o app
-              funciona offline.
-            </Text>
-            <View style={styles.spacer} />
-            <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
-          </View>
-        )}
       </Card>
 
       <SectionTitle>Lembretes de água</SectionTitle>
@@ -98,15 +100,15 @@ export function ProfileScreen() {
           <Switch
             value={settings.enabled}
             onValueChange={toggleEnabled}
-            trackColor={{ true: colors.accent, false: colors.border }}
+            trackColor={{ true: colors.primary, false: colors.track }}
             thumbColor={colors.white}
           />
         </View>
       </Card>
 
-      <View style={styles.resetBlock}>
-        <GhostButton label="Refazer questionário" onPress={confirmReset} />
-      </View>
+      <View style={styles.spacer} />
+      <GhostButton label="Refazer questionário" onPress={confirmReset} />
+      <View style={{ height: 8 }} />
     </ScrollView>
   );
 }
@@ -122,20 +124,28 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  gap: { gap: 10 },
-  container: { padding: 20, gap: 12, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 15, color: colors.textMuted, marginBottom: 8 },
+  gap: { gap: 12 },
+  container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: colors.background },
+  hero: { alignItems: 'center', paddingVertical: 12, gap: 6 },
+  avatar: {
+    width: 76,
+    height: 76,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 32, fontWeight: '900', color: colors.white },
+  name: { fontSize: 22, fontWeight: '800', color: colors.text },
+  sub: { fontSize: 14, color: colors.textMuted },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowLabel: { fontSize: 15, color: colors.textMuted },
-  rowValue: { fontSize: 15, color: colors.text, fontWeight: '600' },
+  rowValue: { fontSize: 15, color: colors.text, fontWeight: '700' },
   rowValueHighlight: { color: colors.primary, fontWeight: '800' },
-  accountLabel: { fontSize: 13, color: colors.textMuted },
   accountEmail: { fontSize: 16, color: colors.text, fontWeight: '700', marginTop: 2 },
-  accountHint: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
-  spacer: { height: 12 },
+  hint: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
+  spacer: { height: 14 },
   reminderRow: { flexDirection: 'row', alignItems: 'center' },
   reminderLabel: { fontSize: 15, color: colors.text, fontWeight: '600' },
   reminderHint: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  resetBlock: { marginTop: 10 },
 });

@@ -1,10 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, ProgressBar, SectionTitle } from '@/components/ui';
+import { Card, CircularProgress, ProgressBar, SectionTitle } from '@/components/ui';
 import { levelFromXp, xpIntoLevel } from '@/domain/gamification';
 import { totalCalories, totalCarbs, totalFat, totalProtein } from '@/domain/log';
 import { useAppData } from '@/state/AppDataProvider';
-import { colors } from '@/theme/colors';
+import { colors, radius } from '@/theme/colors';
 
 const WATER_STEPS = [200, 300, 500];
 
@@ -17,126 +17,189 @@ export function DashboardScreen() {
   const carbs = totalCarbs(todayLog);
   const fat = totalFat(todayLog);
   const level = levelFromXp(gamification.xp);
+  const waterPct = todayLog.waterMl / targets.waterMl;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.greeting}>Olá, {profile.name.split(' ')[0]} 👋</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.hello}>Olá, {profile.name.split(' ')[0]} 👋</Text>
+          <Text style={styles.subtitle}>Vamos bater as metas de hoje</Text>
+        </View>
+        <View style={styles.levelBadge}>
+          <Text style={styles.levelBadgeText}>Nv {level}</Text>
+        </View>
+      </View>
 
       {/* Gamificação */}
-      <Card style={styles.gamiCard}>
-        <View style={styles.gamiRow}>
-          <View>
-            <Text style={styles.gamiLabel}>Nível</Text>
-            <Text style={styles.gamiValue}>{level}</Text>
-          </View>
-          <View>
-            <Text style={styles.gamiLabel}>Sequência</Text>
-            <Text style={styles.gamiValue}>🔥 {gamification.currentStreak}</Text>
-          </View>
-          <View>
-            <Text style={styles.gamiLabel}>XP total</Text>
-            <Text style={styles.gamiValue}>{gamification.xp}</Text>
-          </View>
-        </View>
-        <View style={styles.xpBar}>
-          <ProgressBar value={xpIntoLevel(gamification.xp) / 100} color={colors.accent} />
-          <Text style={styles.xpHint}>{xpIntoLevel(gamification.xp)}/100 XP para o próximo nível</Text>
-        </View>
-      </Card>
+      <View style={styles.statsRow}>
+        <StatPill icon="🔥" value={`${gamification.currentStreak}`} label="dias seguidos" />
+        <StatPill icon="⭐" value={`${gamification.xp}`} label="XP total" />
+        <StatPill icon="🏆" value={`${gamification.longestStreak}`} label="recorde" />
+      </View>
 
-      {/* Água */}
-      <SectionTitle>Hidratação</SectionTitle>
-      <Card>
-        <View style={styles.metricHeader}>
-          <Text style={styles.metricBig}>💧 {todayLog.waterMl} ml</Text>
-          <Text style={styles.metricGoal}>meta {targets.waterMl} ml</Text>
-        </View>
-        <ProgressBar value={todayLog.waterMl / targets.waterMl} />
+      {/* Água — herói */}
+      <Card style={styles.waterCard}>
+        <CircularProgress size={196} strokeWidth={18} progress={waterPct} color={colors.water}>
+          <Text style={styles.waterEmoji}>💧</Text>
+          <Text style={styles.waterValue}>{todayLog.waterMl}</Text>
+          <Text style={styles.waterUnit}>de {targets.waterMl} ml</Text>
+        </CircularProgress>
+
         <View style={styles.waterBtns}>
           {WATER_STEPS.map((ml) => (
-            <View key={ml} style={styles.flex}>
-              <PrimaryButton label={`+${ml}ml`} onPress={() => addWater(ml)} />
-            </View>
+            <Pressable
+              key={ml}
+              onPress={() => addWater(ml)}
+              style={({ pressed }) => [styles.waterBtn, pressed && styles.pressed]}
+            >
+              <Text style={styles.waterBtnText}>+{ml}</Text>
+              <Text style={styles.waterBtnUnit}>ml</Text>
+            </Pressable>
           ))}
         </View>
       </Card>
 
-      {/* Nutrição */}
-      <SectionTitle>Nutrição de hoje</SectionTitle>
-      <Card style={styles.gap}>
-        <MacroRow label="🔥 Calorias" value={kcal} goal={targets.calories} unit="kcal" color={colors.primary} />
-        <MacroRow label="🍗 Proteínas" value={protein} goal={targets.proteinG} unit="g" color={colors.success} />
-        <MacroRow label="🍞 Carboidratos" value={carbs} goal={targets.carbsG} unit="g" color={colors.accent} />
-        <MacroRow label="🥑 Gorduras" value={fat} goal={targets.fatG} unit="g" color="#E8A33D" />
+      {/* Calorias */}
+      <SectionTitle>Energia de hoje</SectionTitle>
+      <Card>
+        <View style={styles.calRow}>
+          <Text style={styles.calValue}>{kcal}</Text>
+          <Text style={styles.calGoal}>/ {targets.calories} kcal</Text>
+        </View>
+        <ProgressBar value={kcal / targets.calories} color={colors.calories} height={12} />
       </Card>
+
+      {/* Macros */}
+      <SectionTitle>Macronutrientes</SectionTitle>
+      <View style={styles.macroGrid}>
+        <MacroCard label="Proteína" value={protein} goal={targets.proteinG} color={colors.protein} />
+        <MacroCard label="Carbo" value={carbs} goal={targets.carbsG} color={colors.carbs} />
+        <MacroCard label="Gordura" value={fat} goal={targets.fatG} color={colors.fat} />
+      </View>
 
       {/* Treino */}
       <SectionTitle>Treino</SectionTitle>
       <Card>
         {todayLog.workouts.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum treino registrado hoje. Use a aba Registrar.</Text>
+          <Text style={styles.empty}>Nenhum treino hoje. Registre na aba ➕.</Text>
         ) : (
           todayLog.workouts.map((w) => (
-            <Text key={w.id} style={styles.workoutItem}>
-              🏋️ {w.kind} — {w.durationMin} min
-            </Text>
+            <View key={w.id} style={styles.workoutRow}>
+              <Text style={styles.workoutKind}>🏋️ {w.kind}</Text>
+              <Text style={styles.workoutDur}>{w.durationMin} min</Text>
+            </View>
           ))
         )}
       </Card>
 
       <Text style={styles.disclaimer}>
-        Valores são estimativas para orientação, não recomendação médica. Consulte um profissional.
+        Estimativas para orientação, não recomendação médica.
       </Text>
     </ScrollView>
   );
 }
 
-function MacroRow({
+function StatPill({ icon, value, label }: { icon: string; value: string; label: string }) {
+  return (
+    <View style={styles.statPill}>
+      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function MacroCard({
   label,
   value,
   goal,
-  unit,
   color,
 }: {
   label: string;
   value: number;
   goal: number;
-  unit: string;
   color: string;
 }) {
   return (
-    <View style={styles.macroRow}>
-      <View style={styles.macroHead}>
-        <Text style={styles.macroLabel}>{label}</Text>
-        <Text style={styles.macroValue}>
-          {value} / {goal} {unit}
-        </Text>
+    <View style={styles.macroCard}>
+      <Text style={styles.macroLabel}>{label}</Text>
+      <Text style={[styles.macroValue, { color }]}>{value}g</Text>
+      <Text style={styles.macroGoal}>de {goal}g</Text>
+      <View style={styles.macroBar}>
+        <ProgressBar value={goal > 0 ? value / goal : 0} color={color} height={6} />
       </View>
-      <ProgressBar value={goal > 0 ? value / goal : 0} color={color} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  gap: { gap: 14 },
-  container: { padding: 20, gap: 12, backgroundColor: colors.background },
-  greeting: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 4 },
-  gamiCard: { backgroundColor: colors.primaryDark, borderColor: colors.primaryDark },
-  gamiRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
-  gamiLabel: { color: '#B9E0EF', fontSize: 12, fontWeight: '600' },
-  gamiValue: { color: colors.white, fontSize: 22, fontWeight: '800' },
-  xpBar: { gap: 6 },
-  xpHint: { color: '#B9E0EF', fontSize: 12 },
-  metricHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
-  metricBig: { fontSize: 22, fontWeight: '800', color: colors.text },
-  metricGoal: { fontSize: 14, color: colors.textMuted },
-  waterBtns: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  macroRow: { gap: 6 },
-  macroHead: { flexDirection: 'row', justifyContent: 'space-between' },
-  macroLabel: { fontSize: 15, color: colors.text, fontWeight: '600' },
-  macroValue: { fontSize: 14, color: colors.textMuted },
-  emptyText: { color: colors.textMuted, fontSize: 14 },
-  workoutItem: { fontSize: 15, color: colors.text, paddingVertical: 2 },
-  disclaimer: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 8, paddingHorizontal: 10 },
+  container: { padding: 20, paddingBottom: 28, gap: 14, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  hello: { fontSize: 24, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
+  levelBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+  },
+  levelBadgeText: { color: colors.white, fontWeight: '800', fontSize: 14 },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statPill: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statIcon: { fontSize: 18 },
+  statValue: { fontSize: 18, fontWeight: '800', color: colors.text, marginTop: 2 },
+  statLabel: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  waterCard: { alignItems: 'center', paddingVertical: 24, gap: 20 },
+  waterEmoji: { fontSize: 26 },
+  waterValue: { fontSize: 40, fontWeight: '900', color: colors.text, marginTop: 2 },
+  waterUnit: { fontSize: 14, color: colors.textMuted },
+  waterBtns: { flexDirection: 'row', gap: 12, width: '100%' },
+  waterBtn: {
+    flex: 1,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  waterBtnText: { fontSize: 17, fontWeight: '800', color: colors.primaryDark },
+  waterBtnUnit: { fontSize: 11, color: colors.primary, fontWeight: '600' },
+  pressed: { opacity: 0.7 },
+  calRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12, gap: 6 },
+  calValue: { fontSize: 30, fontWeight: '900', color: colors.text },
+  calGoal: { fontSize: 15, color: colors.textMuted, fontWeight: '600' },
+  macroGrid: { flexDirection: 'row', gap: 10 },
+  macroCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  macroLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700' },
+  macroValue: { fontSize: 22, fontWeight: '900', marginTop: 4 },
+  macroGoal: { fontSize: 11, color: colors.textFaint },
+  macroBar: { marginTop: 10 },
+  empty: { color: colors.textMuted, fontSize: 14 },
+  workoutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  workoutKind: { fontSize: 15, color: colors.text, fontWeight: '600' },
+  workoutDur: { fontSize: 14, color: colors.textMuted },
+  disclaimer: { fontSize: 12, color: colors.textFaint, textAlign: 'center', marginTop: 6 },
 });

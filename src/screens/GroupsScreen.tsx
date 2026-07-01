@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import {
@@ -21,7 +13,7 @@ import {
 import { Card, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { useAuth } from '@/state/AuthProvider';
-import { colors } from '@/theme/colors';
+import { colors, radius } from '@/theme/colors';
 
 export function GroupsScreen() {
   const { isLoggedIn } = useAuth();
@@ -31,7 +23,9 @@ export function GroupsScreen() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
+  // Estados de carregamento SEPARADOS — evita os dois botões ativarem juntos.
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [ranking, setRanking] = useState<{ group: Group; entries: RankEntry[] } | null>(null);
 
   const refresh = useCallback(async () => {
@@ -39,7 +33,7 @@ export function GroupsScreen() {
     try {
       setGroups(await myGroups());
     } catch {
-      // offline ou erro — mantém o que tem
+      /* offline: mantém estado atual */
     } finally {
       setLoading(false);
     }
@@ -53,12 +47,14 @@ export function GroupsScreen() {
 
   if (!isLoggedIn) {
     return (
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Grupos</Text>
-        <Card>
+        <Card style={styles.emptyCard}>
+          <Text style={styles.bigEmoji}>👥</Text>
+          <Text style={styles.emptyTitle}>Compita com amigos</Text>
           <Text style={styles.hint}>
-            Crie ou entre em grupos para competir com amigos no ranking de XP. É preciso ter uma
-            conta.
+            Crie ou entre em grupos e dispute o ranking de XP. Precisa de uma conta (opcional — o
+            app funciona offline).
           </Text>
           <View style={styles.spacer} />
           <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
@@ -68,8 +64,8 @@ export function GroupsScreen() {
   }
 
   const doCreate = async () => {
-    if (name.trim().length < 2) return Alert.alert('Ops', 'Dê um nome ao grupo.');
-    setBusy(true);
+    if (name.trim().length < 2) return Alert.alert('Ops', 'Dê um nome ao grupo (mín. 2 letras).');
+    setCreating(true);
     try {
       await createGroup(name.trim());
       setName('');
@@ -78,13 +74,13 @@ export function GroupsScreen() {
     } catch (e) {
       Alert.alert('Erro', e instanceof ApiError ? e.message : 'Tente novamente.');
     } finally {
-      setBusy(false);
+      setCreating(false);
     }
   };
 
   const doJoin = async () => {
     if (code.trim().length < 4) return Alert.alert('Ops', 'Informe o código de convite.');
-    setBusy(true);
+    setJoining(true);
     try {
       await joinGroup(code.trim());
       setCode('');
@@ -93,7 +89,7 @@ export function GroupsScreen() {
     } catch (e) {
       Alert.alert('Erro', e instanceof ApiError ? e.message : 'Código inválido.');
     } finally {
-      setBusy(false);
+      setJoining(false);
     }
   };
 
@@ -102,49 +98,60 @@ export function GroupsScreen() {
       const entries = await groupRanking(group.id);
       setRanking({ group, entries });
     } catch (e) {
-      Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível carregar o ranking.');
+      Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível carregar.');
     }
   };
 
   if (ranking) {
+    const medals = ['🥇', '🥈', '🥉'];
     return (
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{ranking.group.name}</Text>
-        <Text style={styles.subtitle}>Código: {ranking.group.inviteCode}</Text>
+        <Text style={styles.codeLine}>Código: {ranking.group.inviteCode}</Text>
         <SectionTitle>Ranking por XP</SectionTitle>
-        <Card style={styles.gap}>
+        <Card style={styles.rankCard}>
           {ranking.entries.map((e, i) => (
-            <View key={e.userId} style={styles.rankRow}>
-              <Text style={styles.rankPos}>{i + 1}º</Text>
-              <Text style={styles.rankName}>{e.name}</Text>
+            <View key={e.userId} style={[styles.rankRow, i > 0 && styles.rankDivider]}>
+              <Text style={styles.rankPos}>{medals[i] ?? `${i + 1}º`}</Text>
+              <View style={styles.flex}>
+                <Text style={styles.rankName}>{e.name}</Text>
+                <Text style={styles.rankSub}>Nível {e.level} · 🔥 {e.currentStreak}</Text>
+              </View>
               <Text style={styles.rankXp}>{e.xp} XP</Text>
             </View>
           ))}
         </Card>
-        <GhostButton label="Voltar" onPress={() => setRanking(null)} />
+        <GhostButton label="← Voltar aos grupos" onPress={() => setRanking(null)} />
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Grupos</Text>
 
       <SectionTitle>Meus grupos</SectionTitle>
-      {loading ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : groups.length === 0 ? (
+      {groups.length === 0 ? (
         <Card>
-          <Text style={styles.hint}>Você ainda não participa de nenhum grupo.</Text>
+          <Text style={styles.hint}>
+            {loading ? 'Carregando…' : 'Você ainda não participa de nenhum grupo.'}
+          </Text>
         </Card>
       ) : (
         groups.map((g) => (
-          <Pressable key={g.id} onPress={() => openRanking(g)}>
+          <Pressable
+            key={g.id}
+            onPress={() => openRanking(g)}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
             <Card style={styles.groupCard}>
-              <View>
+              <View style={styles.groupAvatar}>
+                <Text style={styles.groupAvatarText}>{g.name.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={styles.flex}>
                 <Text style={styles.groupName}>{g.name}</Text>
                 <Text style={styles.groupMeta}>
-                  {g._count?.members ?? 0} membro(s) · código {g.inviteCode}
+                  {g._count?.members ?? 0} membro(s) · {g.inviteCode}
                 </Text>
               </View>
               <Text style={styles.chevron}>›</Text>
@@ -156,7 +163,7 @@ export function GroupsScreen() {
       <SectionTitle>Criar grupo</SectionTitle>
       <Card>
         <Field label="Nome do grupo" value={name} onChangeText={setName} placeholder="Ex: Família Fit" />
-        <PrimaryButton label={busy ? 'Aguarde…' : 'Criar grupo'} onPress={doCreate} disabled={busy} />
+        <PrimaryButton label="Criar grupo" onPress={doCreate} loading={creating} disabled={joining} />
       </Card>
 
       <SectionTitle>Entrar em um grupo</SectionTitle>
@@ -168,25 +175,41 @@ export function GroupsScreen() {
           placeholder="ex: e7357ed4"
           autoCapitalize="none"
         />
-        <PrimaryButton label={busy ? 'Aguarde…' : 'Entrar'} onPress={doJoin} disabled={busy} />
+        <PrimaryButton label="Entrar" onPress={doJoin} loading={joining} disabled={creating} />
       </Card>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  gap: { gap: 10 },
-  container: { padding: 20, gap: 12, backgroundColor: colors.background },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: 4 },
-  hint: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
-  spacer: { height: 12 },
-  groupCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  flex: { flex: 1 },
+  container: { padding: 20, paddingBottom: 28, gap: 12, backgroundColor: colors.background },
+  title: { fontSize: 24, fontWeight: '800', color: colors.text },
+  codeLine: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
+  hint: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
+  spacer: { height: 14 },
+  emptyCard: { alignItems: 'center', paddingVertical: 28, gap: 6 },
+  bigEmoji: { fontSize: 44 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+  pressed: { opacity: 0.7 },
+  groupCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  groupAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupAvatarText: { fontSize: 20, fontWeight: '800', color: colors.primaryDark },
   groupName: { fontSize: 16, fontWeight: '700', color: colors.text },
   groupMeta: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  chevron: { fontSize: 26, color: colors.textMuted },
-  rankRow: { flexDirection: 'row', alignItems: 'center' },
-  rankPos: { width: 36, fontSize: 15, fontWeight: '800', color: colors.primary },
-  rankName: { flex: 1, fontSize: 15, color: colors.text },
-  rankXp: { fontSize: 14, fontWeight: '700', color: colors.textMuted },
+  chevron: { fontSize: 28, color: colors.textFaint, fontWeight: '300' },
+  rankCard: { gap: 0 },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  rankDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  rankPos: { width: 34, fontSize: 20, fontWeight: '800', color: colors.text, textAlign: 'center' },
+  rankName: { fontSize: 15, fontWeight: '700', color: colors.text },
+  rankSub: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  rankXp: { fontSize: 15, fontWeight: '800', color: colors.primary },
 });

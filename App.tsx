@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppDataProvider } from '@/state/AppDataProvider';
@@ -8,14 +9,16 @@ import { colors } from '@/theme/colors';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppDataProvider>
-        <SafeAreaView style={styles.root}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </SafeAreaView>
-      </AppDataProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <View style={styles.root}>
+        <AuthProvider>
+          <AppDataProvider>
+            <RootNavigator />
+          </AppDataProvider>
+        </AuthProvider>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
