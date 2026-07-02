@@ -38,8 +38,9 @@ export function xpIntoLevel(xp: number): number {
 }
 
 function dayBefore(day: string): string {
-  const d = new Date(day + 'T00:00:00');
-  d.setDate(d.getDate() - 1);
+  // Trabalha inteiramente em UTC para não deslocar a data conforme o fuso local.
+  const d = new Date(day + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
 

@@ -4,9 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 
 import { pushWater, pushMeal, pushWorkout } from '@/api/logs';
 import { pushProfile } from '@/api/profile';
@@ -57,6 +59,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [todayLog, setTodayLog] = useState<DailyLog>(emptyLog(todayKey()));
   const [gamification, setGamification] = useState<GamificationState>(INITIAL_GAMIFICATION);
 
+  // Espelho síncrono do log do dia. Garante que registros disparados em sequência
+  // (ex.: dois toques rápidos em +água) acumulem em vez de sobrescrever, já que o
+  // estado do React só reflete a mudança no próximo render.
+  const logRef = useRef<DailyLog>(todayLog);
+
   useEffect(() => {
     (async () => {
       const [p, log, g] = await Promise.all([
@@ -65,15 +72,54 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         loadGamification(),
       ]);
       setProfile(p);
+      logRef.current = log;
       setTodayLog(log);
       setGamification(g);
       setLoading(false);
     })();
   }, []);
 
+  // Virada de dia com o app aberto. Recarrega o log do dia atual para não
+  // registrar no dia anterior. Dois gatilhos complementares:
+  //  - AppState: cobre voltar ao primeiro plano após a virada;
+  //  - timer para a próxima meia-noite: cobre o app aberto e visível na virada.
+  useEffect(() => {
+    const refreshIfDayChanged = () => {
+      const key = todayKey();
+      if (logRef.current.date === key) return;
+      loadLog(key).then((log) => {
+        logRef.current = log;
+        setTodayLog(log);
+      });
+    };
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshIfDayChanged();
+    });
+
+    let timer: ReturnType<typeof setTimeout>;
+    const scheduleMidnight = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0); // próxima meia-noite no horário local
+      // +1s de folga para garantir que todayKey() já virou.
+      timer = setTimeout(() => {
+        refreshIfDayChanged();
+        scheduleMidnight();
+      }, nextMidnight.getTime() - now.getTime() + 1000);
+    };
+    scheduleMidnight();
+
+    return () => {
+      sub.remove();
+      clearTimeout(timer);
+    };
+  }, []);
+
   const targets = useMemo(() => (profile ? calcTargets(profile) : null), [profile]);
 
   const persistLog = useCallback(async (next: DailyLog) => {
+    logRef.current = next;
     setTodayLog(next);
     await saveLog(next);
   }, []);
@@ -108,9 +154,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addWater = useCallback(
     async (ml: number) => {
-      const before = todayLog.waterMl;
+      const before = logRef.current.waterMl;
       const after = before + ml;
-      await persistLog({ ...todayLog, waterMl: after });
+      await persistLog({ ...logRef.current, waterMl: after });
       await reward(XP_REWARDS.WATER);
       if (isLoggedIn) syncSafe(() => pushWater(ml));
       // Comemora ao cruzar a meta diária (uma vez).
@@ -118,27 +164,27 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         notifyWaterGoalReached().catch(() => undefined);
       }
     },
-    [persistLog, reward, todayLog, isLoggedIn, targets],
+    [persistLog, reward, isLoggedIn, targets],
   );
 
   const addMeal = useCallback(
     async (meal: Omit<MealEntry, 'id' | 'at'>) => {
       const entry: MealEntry = { ...meal, id: newId(), at: new Date().toISOString() };
-      await persistLog({ ...todayLog, meals: [...todayLog.meals, entry] });
+      await persistLog({ ...logRef.current, meals: [...logRef.current.meals, entry] });
       await reward(XP_REWARDS.MEAL);
       if (isLoggedIn) syncSafe(() => pushMeal(meal));
     },
-    [persistLog, reward, todayLog, isLoggedIn],
+    [persistLog, reward, isLoggedIn],
   );
 
   const addWorkout = useCallback(
     async (w: Omit<WorkoutEntry, 'id' | 'at'>) => {
       const entry: WorkoutEntry = { ...w, id: newId(), at: new Date().toISOString() };
-      await persistLog({ ...todayLog, workouts: [...todayLog.workouts, entry] });
+      await persistLog({ ...logRef.current, workouts: [...logRef.current.workouts, entry] });
       await reward(XP_REWARDS.WORKOUT);
       if (isLoggedIn) syncSafe(() => pushWorkout(w));
     },
-    [persistLog, reward, todayLog, isLoggedIn],
+    [persistLog, reward, isLoggedIn],
   );
 
   const value: AppData = {
