@@ -61,6 +61,14 @@ function PostCard({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
+  // Re-sincroniza com o servidor quando o feed recarrega (mesmo id → sem
+  // remontar). Não interfere no update otimista: durante ele as props não mudam.
+  useEffect(() => {
+    setLiked(post.likedByMe);
+    setLikeCount(post.likeCount);
+    setCommentCount(post.commentCount);
+  }, [post.id, post.likedByMe, post.likeCount, post.commentCount]);
+
   const like = async () => {
     const prevLiked = liked;
     const prevCount = likeCount;
