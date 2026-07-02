@@ -52,7 +52,7 @@ acompanhamento médico ou nutricional profissional.
 
 ## Outros campos
 - **Categoria:** Saúde e fitness
-- **E-mail de contato:** huriel@ramarventures.com
+- **E-mail de contato:** hurvionsystems@gmail.com
 - **Política de Privacidade (URL):** _hospedar `docs/privacidade.html` e colar a URL aqui_
 - **Tags/《palavras‑chave》 sugeridas:** água, hidratação, dieta, calorias, macros, treino, saúde, metas, hábitos
 
