@@ -4,7 +4,7 @@ import { Image, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { Card, Chip, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { calcBMR, calcTDEE } from '@/domain/nutrition';
-import { ACTIVITY_LABELS, ageFromBirthDate, GOAL_LABELS, SEX_LABELS } from '@/domain/profile';
+import { ACTIVITY_LABELS, ageFromBirthDate, GOAL_LABELS } from '@/domain/profile';
 import { useWaterReminders } from '@/hooks/useWaterReminders';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { EditAccountScreen } from '@/screens/EditAccountScreen';
@@ -36,6 +36,15 @@ export function ProfileScreen() {
   if (showAuth) return <AuthScreen onClose={() => setShowAuth(false)} />;
   if (showEdit) return <EditAccountScreen onClose={() => setShowEdit(false)} />;
 
+  // Monta a linha de subtítulo só com as partes preenchidas (evita "28 anos ·"
+  // quando o sexo não estiver definido). Resolvedor de sexo tolerante a variações
+  // (MALE/male/Masculino/M/homem…); se houver um valor não reconhecido, mostra-o
+  // cru — nunca deixa um separador pendurado.
+  const age = ageFromBirthDate(profile.birthDate);
+  const sexUpper = String(profile.sex ?? '').trim().toUpperCase();
+  const sexText =
+    sexUpper.startsWith('F') ? 'Feminino' : sexUpper.startsWith('M') || sexUpper.startsWith('H') ? 'Masculino' : '';
+
   return (
     <>
       <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
@@ -48,9 +57,9 @@ export function ProfileScreen() {
             </View>
           )}
           <Text style={s.name}>{profile.name}</Text>
-          <Text style={s.sub}>
-            {ageFromBirthDate(profile.birthDate)} anos · {SEX_LABELS[profile.sex]}
-          </Text>
+          {Number.isFinite(age) && (
+            <Text style={s.sub}>{sexText ? `${age} anos  ·  ${sexText}` : `${age} anos`}</Text>
+          )}
           <View style={s.heroPills}>
             <View style={s.heroPill}>
               <Text style={s.heroPillText}>⚖️ {profile.weightKg} kg</Text>
@@ -195,8 +204,8 @@ const makeStyles = (c: Palette) =>
       justifyContent: 'center',
     },
     avatarText: { fontSize: 32, fontWeight: '900', color: c.white },
-    name: { fontSize: 22, fontWeight: '800', color: c.text },
-    sub: { fontSize: 14, color: c.textMuted },
+    name: { fontSize: 22, fontWeight: '800', color: c.text, textAlign: 'center' },
+    sub: { fontSize: 14, color: c.textMuted, textAlign: 'center', alignSelf: 'stretch' },
     heroPills: { flexDirection: 'row', gap: 8, marginTop: 6 },
     heroPill: {
       backgroundColor: c.primarySoft,
