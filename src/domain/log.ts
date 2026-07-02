@@ -1,3 +1,5 @@
+import { dayKeyInTZ } from './datetime';
+
 export interface MealEntry {
   id: string;
   label: string;
@@ -39,6 +41,10 @@ export function totalFat(log: DailyLog): number {
   return log.meals.reduce((s, m) => s + m.fatG, 0);
 }
 
+/**
+ * Chave do dia (yyyy-mm-dd) no fuso do usuário (dispositivo, com fallback
+ * America/Sao_Paulo). Evita virar o dia às 21h como acontecia usando UTC.
+ */
 export function todayKey(now = new Date()): string {
-  return now.toISOString().slice(0, 10);
+  return dayKeyInTZ(now);
 }
