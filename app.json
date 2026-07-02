@@ -17,7 +17,7 @@
       "favicon": "./assets/favicon.png"
     },
     "android": {
-      "package": "com.huriellopes.notifywaterhealth",
+      "package": "com.huriellopes.flui",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -31,7 +31,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.huriellopes.notifywaterhealth"
+      "bundleIdentifier": "com.huriellopes.flui"
     },
     "plugins": [
       [
