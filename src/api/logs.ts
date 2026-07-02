@@ -26,3 +26,24 @@ export function pushWorkout(workout: Omit<WorkoutEntry, 'id' | 'at'>) {
     body: { workoutKind: workout.kind, durationMin: workout.durationMin },
   });
 }
+
+/** Estimativa de macros a partir de uma foto (retorno do backend de visão). */
+export type MealAnalysis = {
+  dish: string;
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  portion: string;
+  confidence: 'low' | 'medium' | 'high';
+  provider: string;
+};
+
+/** Envia a foto do prato e recebe a estimativa de prato + macros (não registra). */
+export function analyzeMealPhoto(imageBase64: string, imageMime?: string) {
+  return apiRequest<MealAnalysis>('/logs/analyze-meal-photo', {
+    method: 'POST',
+    auth: true,
+    body: { imageBase64, imageMime },
+  });
+}
