@@ -23,10 +23,11 @@ Notifications.setNotificationHandler({
 export async function ensureNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-      name: 'Lembretes de água',
+      name: 'Lembretes de hidratação',
+      description: 'Avisos ao longo do dia para você bater sua meta de água.',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#0B7FAB',
+      lightColor: '#16B8D4',
     });
   }
 
@@ -64,6 +65,15 @@ export async function notifyRemindersEnabled(): Promise<void> {
     trigger: null,
   });
 }
+
+// Mensagens rotativas para os lembretes, para não ficarem repetitivas.
+const REMINDER_MESSAGES: { title: string; body: string }[] = [
+  { title: '💧 Hora de beber água', body: 'Faça uma pausa e hidrate-se para bater sua meta de hoje.' },
+  { title: '💧 Bora hidratar!', body: 'Um gole agora mantém sua energia e seu foco lá em cima.' },
+  { title: '🚰 Seu corpo pediu água', body: 'Beba um copo e siga cuidando da sua saúde. Você consegue!' },
+  { title: '💦 Pausa para a água', body: 'Pequenos goles ao longo do dia fazem uma grande diferença.' },
+  { title: '💧 Mantenha o ritmo', body: 'Mais um copo para não perder sua sequência de hidratação. 🔥' },
+];
 
 // Teto de segurança: o iOS limita ~64 notificações locais pendentes.
 const MAX_DAILY_SLOTS = 60;
@@ -105,11 +115,13 @@ export async function rescheduleReminders(settings: ReminderSettings): Promise<b
   if (!granted) return false;
 
   const slots = buildReminderSlots(settings);
-  for (const mins of slots) {
+  for (let index = 0; index < slots.length; index++) {
+    const mins = slots[index];
+    const msg = REMINDER_MESSAGES[index % REMINDER_MESSAGES.length];
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '💧 Hora de beber água',
-        body: 'Faça uma pausa e hidrate-se para bater sua meta diária.',
+        title: msg.title,
+        body: msg.body,
         ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL_ID } : {}),
       },
       trigger: {
