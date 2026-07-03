@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { LockGate } from '@/components/LockGate';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppDataProvider } from '@/state/AppDataProvider';
 import { AuthProvider } from '@/state/AuthProvider';
@@ -13,11 +14,13 @@ function Shell() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <AuthProvider>
-        <AppDataProvider>
-          <RootNavigator />
-        </AppDataProvider>
-      </AuthProvider>
+      <LockGate>
+        <AuthProvider>
+          <AppDataProvider>
+            <RootNavigator />
+          </AppDataProvider>
+        </AuthProvider>
+      </LockGate>
     </View>
   );
 }
