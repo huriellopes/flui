@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -144,6 +145,10 @@ export function ProfileScreen() {
 
         <View style={s.spacer} />
         <GhostButton label="Refazer questionário" onPress={() => setResetOpen(true)} />
+        <Text style={s.version}>
+          💧 Flui v{Application.nativeApplicationVersion ?? '—'}
+          {Application.nativeBuildVersion ? ` (build ${Application.nativeBuildVersion})` : ''}
+        </Text>
         <View style={{ height: 8 }} />
       </ScrollView>
 
@@ -232,4 +237,5 @@ const makeStyles = (c: Palette) =>
     reminderRow: { flexDirection: 'row', alignItems: 'center' },
     reminderLabel: { fontSize: 15, color: c.text, fontWeight: '600' },
     reminderHint: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    version: { fontSize: 12, color: c.textFaint, textAlign: 'center', marginTop: 14 },
   });

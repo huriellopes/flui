@@ -38,13 +38,13 @@ export interface Palette {
 }
 
 export const lightColors: Palette = {
-  background: '#F3F6FB',
+  background: '#F2F8FB',
   surface: '#FFFFFF',
-  surfaceAlt: '#EEF3FB',
-  primary: '#2F6BFF',
-  primaryDark: '#1E4FD9',
-  primarySoft: '#E5EDFF',
-  water: '#2FA8F4',
+  surfaceAlt: '#E8F3F9',
+  primary: '#1595CC',
+  primaryDark: '#0E7AAD',
+  primarySoft: '#DCF1FA',
+  water: '#22B8D9',
   calories: '#FF7A45',
   protein: '#22C55E',
   carbs: '#F59E0B',
@@ -61,13 +61,13 @@ export const lightColors: Palette = {
 };
 
 export const darkColors: Palette = {
-  background: '#0B1220',
-  surface: '#151E30',
-  surfaceAlt: '#1E2940',
-  primary: '#4F86FF',
-  primaryDark: '#3A6BE0',
-  primarySoft: '#1E2A47',
-  water: '#38B0FF',
+  background: '#08151D',
+  surface: '#10202B',
+  surfaceAlt: '#172C3A',
+  primary: '#35B4E0',
+  primaryDark: '#1E93C0',
+  primarySoft: '#123246',
+  water: '#3CC6E6',
   calories: '#FF8A5C',
   protein: '#34D399',
   carbs: '#FBBF24',

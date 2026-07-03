@@ -14,6 +14,7 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,7 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
     if (isRegister && name.trim().length < 2) return setError('Informe seu nome.');
     if (!email.includes('@')) return setError('E-mail inválido.');
     if (password.length < 8) return setError('A senha deve ter ao menos 8 caracteres.');
+    if (isRegister && password !== confirmPassword) return setError('As senhas não conferem.');
 
     setBusy(true);
     try {
@@ -67,6 +69,16 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
           secureTextEntry
           autoCapitalize="none"
         />
+        {isRegister && (
+          <Field
+            label="Confirmar senha"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="repita a senha"
+            secureTextEntry
+            autoCapitalize="none"
+          />
+        )}
 
         {error && <Text style={s.error}>{error}</Text>}
 
@@ -80,6 +92,7 @@ export function AuthScreen({ onClose }: { onClose: () => void }) {
           label={isRegister ? 'Já tenho conta — Entrar' : 'Não tenho conta — Criar'}
           onPress={() => {
             setError(null);
+            setConfirmPassword('');
             setMode(isRegister ? 'login' : 'register');
           }}
         />
