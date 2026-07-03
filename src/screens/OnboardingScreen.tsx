@@ -93,7 +93,7 @@ export function OnboardingScreen() {
           <View>
             <Text style={s.title}>Como podemos te chamar?</Text>
             <Text style={s.subtitle}>Vamos personalizar sua jornada.</Text>
-            <Field label="Seu nome" value={name} onChangeText={setName} placeholder="Ex: Huriel" autoFocus />
+            <Field label="Seu nome" value={name} onChangeText={setName} placeholder="Ex.: Maria" autoFocus />
           </View>
         )}
 
