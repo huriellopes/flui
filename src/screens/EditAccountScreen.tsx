@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -7,20 +7,28 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 
-import { updateAccount, updateAvatar, updatePassword } from '@/api/account';
+import { deleteAccount, updateAccount, updateAvatar, updatePassword } from '@/api/account';
 import { ApiError } from '@/api/client';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { Card, Field, GhostButton, PrimaryButton, SectionTitle } from '@/components/ui';
+import { authenticate, hasBiometricHardware } from '@/services/biometrics';
+import { cancelAllReminders } from '@/services/notifications';
+import { useAppData } from '@/state/AppDataProvider';
 import { useAuth } from '@/state/AuthProvider';
+import { loadAppLock, saveAppLock } from '@/storage/security';
 import { radius, type Palette } from '@/theme/colors';
-import { useThemedStyles } from '@/theme/ThemeProvider';
+import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 import { pickFromCamera, pickFromGallery } from '@/utils/imagePicker';
 
 export function EditAccountScreen({ onClose }: { onClose: () => void }) {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const { resetAllLocal } = useAppData();
+  const c = useTheme();
   const s = useThemedStyles(makeStyles);
 
   const [name, setName] = useState(user?.name ?? '');
@@ -32,6 +40,53 @@ export function EditAccountScreen({ onClose }: { onClose: () => void }) {
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [savingPass, setSavingPass] = useState(false);
+
+  const [appLock, setAppLock] = useState(false);
+  const [hasBiometric, setHasBiometric] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  useEffect(() => {
+    loadAppLock().then(setAppLock);
+    hasBiometricHardware().then(setHasBiometric);
+  }, []);
+
+  // Liga/desliga o bloqueio, sempre exigindo autenticação para confirmar.
+  const toggleAppLock = async () => {
+    const turningOn = !appLock;
+    const ok = await authenticate(
+      turningOn ? 'Confirme para ativar o bloqueio' : 'Confirme para desativar o bloqueio',
+    );
+    if (!ok) {
+      if (turningOn) {
+        Alert.alert(
+          'Não foi possível ativar',
+          'Configure uma biometria ou um PIN/senha de bloqueio no seu aparelho e tente de novo.',
+        );
+      }
+      return;
+    }
+    await saveAppLock(turningOn);
+    setAppLock(turningOn);
+  };
+
+  const doDelete = async () => {
+    setDeleteOpen(false);
+    setDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+      await cancelAllReminders();
+      await resetAllLocal(); // apaga questionário e tudo do usuário no aparelho
+      await logout();
+      // profile vira null -> o app volta sozinho para o questionário inicial
+    } catch (e) {
+      Alert.alert('Erro', e instanceof ApiError ? e.message : 'Não foi possível excluir a conta.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const changeAvatar = async (from: 'camera' | 'gallery') => {
     const picked =
@@ -128,8 +183,69 @@ export function EditAccountScreen({ onClose }: { onClose: () => void }) {
           <PrimaryButton label="Alterar senha" onPress={savePassword} loading={savingPass} />
         </Card>
 
+        <SectionTitle>Segurança</SectionTitle>
+        <Card>
+          <View style={s.lockRow}>
+            <View style={styles.flex}>
+              <Text style={s.lockLabel}>Bloqueio do app</Text>
+              <Text style={s.lockHint}>
+                {hasBiometric
+                  ? 'Exige reconhecimento facial, digital ou o PIN/senha do aparelho para abrir o Flui.'
+                  : 'Exige o PIN/senha do aparelho para abrir o Flui.'}
+              </Text>
+            </View>
+            <Switch
+              value={appLock}
+              onValueChange={() => {
+                void toggleAppLock();
+              }}
+              trackColor={{ true: c.primary, false: c.track }}
+              thumbColor={c.white}
+            />
+          </View>
+        </Card>
+
+        <SectionTitle>Zona de perigo</SectionTitle>
+        <Card style={s.dangerCard}>
+          <Text style={s.dangerTitle}>Excluir conta</Text>
+          <Text style={s.dangerHint}>
+            Esta ação é permanente. Apaga sua conta e tudo relacionado a você — questionário,
+            registros de água, refeições e treinos, gamificação e ajustes. Não pode ser desfeita.
+          </Text>
+          <Field
+            label="Confirme com sua senha"
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            secureTextEntry
+            autoCapitalize="none"
+            placeholder="sua senha atual"
+          />
+          <Pressable
+            onPress={() => {
+              if (deletePassword.length < 8)
+                return Alert.alert('Ops', 'Informe sua senha para confirmar.');
+              setDeleteOpen(true);
+            }}
+            disabled={deleting}
+            style={({ pressed }) => [s.deleteBtn, (pressed || deleting) && s.pressed]}
+          >
+            <Text style={s.deleteBtnText}>{deleting ? 'Excluindo…' : 'Excluir minha conta'}</Text>
+          </Pressable>
+        </Card>
+
         <GhostButton label="← Voltar" onPress={onClose} />
       </ScrollView>
+
+      <ConfirmModal
+        visible={deleteOpen}
+        icon="⚠️"
+        title="Excluir sua conta?"
+        message="Sua conta e todos os seus dados serão apagados permanentemente. Esta ação não pode ser desfeita."
+        confirmLabel="Excluir tudo"
+        tone="danger"
+        onConfirm={doDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -162,4 +278,17 @@ const makeStyles = (c: Palette) =>
     avatarBtnText: { color: c.text, fontWeight: '700', fontSize: 14 },
     uploading: { color: c.textMuted, fontSize: 13 },
     pressed: { opacity: 0.7 },
+    lockRow: { flexDirection: 'row', alignItems: 'center' },
+    lockLabel: { fontSize: 15, color: c.text, fontWeight: '600' },
+    lockHint: { fontSize: 13, color: c.textMuted, marginTop: 2, paddingRight: 12, lineHeight: 18 },
+    dangerCard: { gap: 12, borderColor: c.danger, borderWidth: 1 },
+    dangerTitle: { fontSize: 16, fontWeight: '800', color: c.danger },
+    dangerHint: { fontSize: 13, color: c.textMuted, lineHeight: 19 },
+    deleteBtn: {
+      backgroundColor: c.danger,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    deleteBtnText: { color: c.white, fontSize: 15, fontWeight: '800' },
   });

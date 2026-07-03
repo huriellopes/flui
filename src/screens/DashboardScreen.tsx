@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Card, CircularProgress, ProgressBar, SectionTitle } from '@/components/ui';
-import { levelFromXp, xpIntoLevel } from '@/domain/gamification';
+import { levelFromXp, levelProgress, xpIntoLevel } from '@/domain/gamification';
 import { totalCalories, totalCarbs, totalFat, totalProtein } from '@/domain/log';
 import { shortName } from '@/domain/profile';
 import { useAppData } from '@/state/AppDataProvider';
@@ -21,7 +21,13 @@ export function DashboardScreen() {
   const carbs = totalCarbs(todayLog);
   const fat = totalFat(todayLog);
   const level = levelFromXp(gamification.xp);
+  const xpInLevel = xpIntoLevel(gamification.xp);
+  const xpToNext = 100 - xpInLevel;
   const waterPct = todayLog.waterMl / targets.waterMl;
+  const waterPctLabel = Math.round(Math.min(1, waterPct) * 100);
+  const calPctLabel = Math.round(
+    Math.min(1, targets.calories ? kcal / targets.calories : 0) * 100,
+  );
   const displayName = shortName(profile.name);
 
   return (
@@ -42,11 +48,25 @@ export function DashboardScreen() {
         <StatPill icon="🏆" value={`${gamification.longestStreak}`} label="recorde" s={s} />
       </View>
 
+      <Card style={s.levelCard}>
+        <View style={s.levelTop}>
+          <Text style={s.levelName}>Nível {level}</Text>
+          <Text style={s.levelXp}>{xpInLevel}/100 XP</Text>
+        </View>
+        <ProgressBar value={levelProgress(gamification.xp)} color={c.primary} height={10} />
+        <Text style={s.levelHint}>
+          {xpToNext === 0
+            ? 'Nível completo! 🎉'
+            : `Faltam ${xpToNext} XP para o nível ${level + 1}`}
+        </Text>
+      </Card>
+
       <Card style={s.waterCard}>
         <CircularProgress size={196} strokeWidth={18} progress={waterPct} color={c.water}>
           <Text style={s.waterEmoji}>💧</Text>
           <Text style={s.waterValue}>{todayLog.waterMl}</Text>
           <Text style={s.waterUnit}>de {targets.waterMl} ml</Text>
+          <Text style={s.waterPct}>{waterPctLabel}% da meta</Text>
         </CircularProgress>
 
         <View style={s.waterBtns}>
@@ -70,6 +90,7 @@ export function DashboardScreen() {
           <Text style={s.calGoal}>/ {targets.calories} kcal</Text>
         </View>
         <ProgressBar value={kcal / targets.calories} color={c.calories} height={12} />
+        <Text style={s.calPct}>{calPctLabel}% da meta diária</Text>
       </Card>
 
       <SectionTitle>Macronutrientes</SectionTitle>
@@ -161,6 +182,13 @@ const makeStyles = (c: Palette) =>
     statIcon: { fontSize: 18, textAlign: 'center' },
     statValue: { fontSize: 18, fontWeight: '800', color: c.text, marginTop: 2, textAlign: 'center' },
     statLabel: { fontSize: 11, color: c.textMuted, marginTop: 1, textAlign: 'center' },
+    levelCard: { gap: 8 },
+    levelTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    levelName: { fontSize: 16, fontWeight: '800', color: c.text },
+    levelXp: { fontSize: 13, fontWeight: '700', color: c.primary },
+    levelHint: { fontSize: 12, color: c.textMuted },
+    waterPct: { fontSize: 13, color: c.water, fontWeight: '800', marginTop: 4 },
+    calPct: { fontSize: 12, color: c.textMuted, marginTop: 8, textAlign: 'right' },
     waterCard: { alignItems: 'center', paddingVertical: 24, gap: 20 },
     waterEmoji: { fontSize: 26 },
     waterValue: { fontSize: 40, fontWeight: '900', color: c.text, marginTop: 2 },

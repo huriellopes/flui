@@ -28,12 +28,15 @@ import { shortName } from '@/domain/profile';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { GroupFeed } from '@/screens/GroupFeed';
 import { useAuth } from '@/state/AuthProvider';
+import Svg, { Circle, Path } from 'react-native-svg';
+
 import { radius, type Palette } from '@/theme/colors';
-import { useThemedStyles } from '@/theme/ThemeProvider';
+import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
 
 export function GroupsScreen() {
   const { isLoggedIn, user } = useAuth();
   const s = useThemedStyles(makeStyles);
+  const c = useTheme();
   const [showAuth, setShowAuth] = useState(false);
 
   const [groups, setGroups] = useState<Group[]>([]);
@@ -67,15 +70,23 @@ export function GroupsScreen() {
     return (
       <ScrollView contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Grupos</Text>
-        <Card style={s.emptyCard}>
-          <Text style={s.bigEmoji}>👥</Text>
+        <Card style={s.heroCard}>
+          <View style={s.heroIconWrap}>
+            <GroupIcon color={c.primary} />
+          </View>
           <Text style={s.emptyTitle}>Compita com amigos</Text>
-          <Text style={s.hint}>
-            Crie ou entre em grupos e dispute o ranking de XP. Precisa de uma conta (opcional — o
-            app funciona offline).
-          </Text>
-          <View style={s.spacer} />
-          <PrimaryButton label="Entrar / Criar conta" onPress={() => setShowAuth(true)} />
+          <Text style={s.heroSub}>Crie ou entre em grupos e dispute quem se cuida melhor.</Text>
+
+          <View style={s.benefits}>
+            <Benefit s={s} icon="🏆" title="Ranking de XP" desc="Veja quem lidera na hidratação e nos treinos." />
+            <Benefit s={s} icon="📸" title="Feed do grupo" desc="Poste fotos, curta e comente com a galera." />
+            <Benefit s={s} icon="🔗" title="Código de convite" desc="Chame amigos com um código simples." />
+          </View>
+
+          <View style={s.cta}>
+            <PrimaryButton label="Entrar ou criar conta" onPress={() => setShowAuth(true)} />
+          </View>
+          <Text style={s.freeNote}>Grátis · o app continua funcionando offline</Text>
         </Card>
       </ScrollView>
     );
@@ -225,10 +236,14 @@ export function GroupsScreen() {
 
       <SectionTitle>Meus grupos</SectionTitle>
       {groups.length === 0 ? (
-        <Card>
-          <Text style={s.hint}>
-            {loading ? 'Carregando…' : 'Você ainda não participa de nenhum grupo.'}
+        <Card style={s.noGroups}>
+          <Text style={s.noGroupsEmoji}>{loading ? '⏳' : '🫂'}</Text>
+          <Text style={s.noGroupsText}>
+            {loading ? 'Carregando seus grupos…' : 'Você ainda não participa de nenhum grupo.'}
           </Text>
+          {!loading && (
+            <Text style={s.noGroupsHint}>Crie o seu abaixo ou entre com um código de convite.</Text>
+          )}
         </Card>
       ) : (
         groups.map((g) => (
@@ -276,6 +291,38 @@ export function GroupsScreen() {
   );
 }
 
+type S = ReturnType<typeof makeStyles>;
+
+/** Ícone de grupo (3 pessoas) em SVG, na cor da marca. */
+function GroupIcon({ color, size = 50 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      {/* pessoas de trás (mais suaves) */}
+      <Circle cx={17} cy={27} r={6.5} fill={color} opacity={0.45} />
+      <Path d="M17 34.5c-6.4 0-10 4.6-10 11h20c0-6.4-3.6-11-10-11z" fill={color} opacity={0.45} />
+      <Circle cx={47} cy={27} r={6.5} fill={color} opacity={0.45} />
+      <Path d="M47 34.5c-6.4 0-10 4.6-10 11h20c0-6.4-3.6-11-10-11z" fill={color} opacity={0.45} />
+      {/* pessoa da frente (destaque) */}
+      <Circle cx={32} cy={24} r={9} fill={color} />
+      <Path d="M32 34c-9 0-14 6.2-14 15h28c0-8.8-5-15-14-15z" fill={color} />
+    </Svg>
+  );
+}
+
+function Benefit({ s, icon, title, desc }: { s: S; icon: string; title: string; desc: string }) {
+  return (
+    <View style={s.benefitRow}>
+      <View style={s.benefitIcon}>
+        <Text style={s.benefitEmoji}>{icon}</Text>
+      </View>
+      <View style={s.flex}>
+        <Text style={s.benefitTitle}>{title}</Text>
+        <Text style={s.benefitDesc}>{desc}</Text>
+      </View>
+    </View>
+  );
+}
+
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
     flex: { flex: 1 },
@@ -285,8 +332,47 @@ const makeStyles = (c: Palette) =>
     spacer: { height: 14 },
     emptyCard: { alignItems: 'center', paddingVertical: 28, gap: 6 },
     bigEmoji: { fontSize: 44 },
-    emptyTitle: { fontSize: 18, fontWeight: '800', color: c.text },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: c.text, textAlign: 'center' },
     pressed: { opacity: 0.6 },
+    // Hero (deslogado)
+    heroCard: { alignItems: 'center', paddingVertical: 26, paddingHorizontal: 18, gap: 6 },
+    heroIconWrap: {
+      width: 88,
+      height: 88,
+      borderRadius: radius.pill,
+      backgroundColor: c.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    },
+    heroEmoji: { fontSize: 44 },
+    heroSub: {
+      fontSize: 15,
+      color: c.textMuted,
+      textAlign: 'center',
+      lineHeight: 21,
+      marginBottom: 6,
+    },
+    benefits: { alignSelf: 'stretch', gap: 12, marginVertical: 14 },
+    cta: { alignSelf: 'stretch' },
+    benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    benefitIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      backgroundColor: c.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    benefitEmoji: { fontSize: 20 },
+    benefitTitle: { fontSize: 15, fontWeight: '700', color: c.text },
+    benefitDesc: { fontSize: 13, color: c.textMuted, marginTop: 1, lineHeight: 18 },
+    freeNote: { fontSize: 12, color: c.textFaint, textAlign: 'center', marginTop: 12 },
+    // Vazio (logado, sem grupos)
+    noGroups: { alignItems: 'center', paddingVertical: 24, gap: 6 },
+    noGroupsEmoji: { fontSize: 36 },
+    noGroupsText: { fontSize: 15, color: c.text, fontWeight: '600', textAlign: 'center' },
+    noGroupsHint: { fontSize: 13, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
     tabRow: { flexDirection: 'row', gap: 8 },
     codeCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     codeLabel: { fontSize: 12, color: c.textMuted, fontWeight: '700' },

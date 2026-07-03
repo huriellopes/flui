@@ -20,3 +20,12 @@ export function updateAvatar(imageBase64: string, imageMime?: string) {
     body: { imageBase64, imageMime },
   });
 }
+
+/** Exclui a conta do usuário no servidor (confirmando a senha atual). */
+export function deleteAccount(password: string) {
+  return apiRequest<{ ok: boolean }>('/users/me', {
+    method: 'DELETE',
+    auth: true,
+    body: { password },
+  });
+}

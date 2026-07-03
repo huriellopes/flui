@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flui",
     "slug": "app-notify-water-health",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "notifywater",
@@ -43,6 +43,12 @@
       ],
       "expo-asset",
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Flui usa o reconhecimento facial para desbloquear o app."
+        }
+      ],
       [
         "expo-image-picker",
         {
