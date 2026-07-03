@@ -10,6 +10,8 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { pushWater, pushMeal, pushWorkout } from '@/api/logs';
 import { pushProfile } from '@/api/profile';
 import { notifyWaterGoalReached } from '@/services/notifications';
@@ -41,6 +43,7 @@ interface AppData {
   gamification: GamificationState;
   saveUserProfile: (p: UserProfile) => Promise<void>;
   resetProfile: () => Promise<void>;
+  resetAllLocal: () => Promise<void>;
   addWater: (ml: number) => Promise<void>;
   addMeal: (meal: Omit<MealEntry, 'id' | 'at'>) => Promise<void>;
   addWorkout: (w: Omit<WorkoutEntry, 'id' | 'at'>) => Promise<void>;
@@ -152,6 +155,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, []);
 
+  // Apaga TODOS os dados locais do usuário (perfil/questionário, registros,
+  // gamificação, ajustes, tema, bloqueio) e reseta o estado em memória.
+  // Usado na exclusão de conta.
+  const resetAllLocal = useCallback(async () => {
+    try {
+      await AsyncStorage.clear();
+    } catch {
+      // ignora falha de limpeza; o reset em memória abaixo já esvazia a sessão
+    }
+    const empty = emptyLog(todayKey());
+    logRef.current = empty;
+    setTodayLog(empty);
+    setGamification(INITIAL_GAMIFICATION);
+    setProfile(null);
+  }, []);
+
   const addWater = useCallback(
     async (ml: number) => {
       const before = logRef.current.waterMl;
@@ -195,6 +214,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     gamification,
     saveUserProfile,
     resetProfile,
+    resetAllLocal,
     addWater,
     addMeal,
     addWorkout,
